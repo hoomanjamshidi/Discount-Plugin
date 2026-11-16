@@ -1,0 +1,106 @@
+/*
+ * Admin styles. After `vite build`, scripts/scope-css.mjs rewrites every selector to
+ * live under #dsd-root and removes @layer wrappers, so:
+ *   - nothing here can leak into the rest of wp-admin, and
+ *   - wp-admin's own (unlayered) CSS cannot override our utilities.
+ */
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "@fontsource-variable/vazirmatn/wght.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --font-sans: "Vazirmatn Variable", Tahoma, Arial, sans-serif;
+  --font-estedad: "Vazirmatn Variable";
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
+  --color-sale: var(--sale);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+}
+
+:root {
+  --background: oklch(0.985 0.002 180);
+  --foreground: oklch(0.2 0.01 200);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.2 0.01 200);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.2 0.01 200);
+  --primary: oklch(0.47 0.085 186);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.006 186);
+  --secondary-foreground: oklch(0.3 0.03 190);
+  --muted: oklch(0.965 0.004 186);
+  --muted-foreground: oklch(0.52 0.015 200);
+  --accent: oklch(0.955 0.012 186);
+  --accent-foreground: oklch(0.25 0.03 190);
+  --destructive: oklch(0.6 0.2 25);
+  --success: oklch(0.65 0.15 150);
+  --warning: oklch(0.72 0.15 70);
+  --sale: oklch(0.6 0.2 15);
+  --border: oklch(0.92 0.006 186);
+  --input: oklch(0.9 0.008 186);
+  --ring: oklch(0.6 0.08 186);
+  --radius: 0.75rem;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  :root {
+    @apply bg-background font-sans text-foreground antialiased;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+  button {
+    cursor: pointer;
+  }
+  input,
+  select,
+  textarea {
+    @apply bg-card text-foreground;
+    min-height: 0;
+    box-shadow: none;
+  }
+  /* wp-admin draws the select arrow on the right (LTR admin); our UI is RTL, so move it left. */
+  select {
+    background-position: left 10px top 55% !important;
+    padding-left: 30px !important;
+    padding-right: 12px !important;
+  }
+}
+
+/* Persian digits look letter-spaced with tnum; keep proportional figures. */
+.tabular-nums {
+  letter-spacing: 0 !important;
+  font-variant-numeric: normal !important;
+  font-feature-settings: "tnum" 0, "pnum" 1 !important;
+}
+
+.dsd-scroll {
+  scrollbar-width: thin;
+}

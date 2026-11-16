@@ -1,0 +1,7 @@
+/vendor/
+/admin-app/node_modules/
+/tests/integration/.out/
+/graphify-out/cache/
+.phpunit.result.cache
+*.log
+/dist/

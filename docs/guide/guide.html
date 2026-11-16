@@ -1,0 +1,457 @@
+<!doctype html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>راهنمای نصب و استفاده — تخفیف گروهی هوشمند</title>
+<style>
+@font-face { font-family: "Vazirmatn"; src: url("fonts/vazirmatn-arabic-wght-normal.woff2") format("woff2"); font-weight: 100 900; unicode-range: U+0600-06FF, U+0750-077F, U+0870-088E, U+0890-0891, U+0897-08E1, U+08E3-08FF, U+200C-200E, U+2010-2011, U+204F, U+2E41, U+FB50-FDFF, U+FE70-FE74, U+FE76-FEFC, U+102E0-102FB, U+10E60-10E7E, U+10EC2-10EC4, U+10EFC-10EFF, U+1EE00-1EEFF; }
+@font-face { font-family: "Vazirmatn"; src: url("fonts/vazirmatn-latin-wght-normal.woff2") format("woff2"); font-weight: 100 900; }
+
+:root {
+  --ink: #12302e; --muted: #5d716f; --line: #dbe7e5; --soft: #f2f7f6; --card: #ffffff;
+  --primary: #0f6e66; --primary-2: #13958a; --primary-soft: #e3f2ef;
+  --amber: #c26a05; --amber-soft: #fff4e2; --rose: #c2334d; --rose-soft: #fdecef;
+  --violet: #6b3fd1; --violet-soft: #f1ecfd; --green: #18864b; --green-soft: #e7f6ee;
+}
+@page { size: A4; margin: 0; }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body { font-family: "Vazirmatn", Tahoma, sans-serif; color: var(--ink); background: #fff; font-size: 10.6pt; line-height: 1.95; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+
+.page { width: 210mm; height: 297mm; position: relative; overflow: hidden; page-break-after: always; padding: 22mm 18mm 20mm; background: #fff; }
+.page:last-child { page-break-after: auto; }
+.page::before { content: ""; position: absolute; inset: 0 0 auto 0; height: 5mm; background: linear-gradient(90deg, var(--primary-2), var(--primary)); }
+.run { position: absolute; top: 9mm; right: 18mm; left: 18mm; display: flex; justify-content: space-between; font-size: 8.5pt; color: var(--muted); }
+.run b { color: var(--primary); font-weight: 700; }
+.foot { position: absolute; bottom: 9mm; right: 18mm; left: 18mm; display: flex; justify-content: space-between; align-items: center; font-size: 8.5pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: 3mm; }
+.foot .num { width: 8mm; height: 8mm; border-radius: 50%; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 9pt; }
+
+h1, h2, h3, h4 { margin: 0; line-height: 1.5; }
+.chapter { display: flex; align-items: center; gap: 4mm; margin-bottom: 5mm; }
+.chapter .n { flex: none; width: 13mm; height: 13mm; border-radius: 4mm; background: linear-gradient(135deg, var(--primary-2), var(--primary)); color: #fff; font-weight: 900; font-size: 17pt; display: flex; align-items: center; justify-content: center; box-shadow: 0 3mm 6mm -3mm rgba(15,110,102,.55); }
+.chapter h2 { font-size: 19pt; font-weight: 900; }
+.chapter p { margin: 0; color: var(--muted); font-size: 9.6pt; }
+h3 { font-size: 12.5pt; font-weight: 800; margin: 5mm 0 2mm; color: var(--ink); }
+p { margin: 0 0 2.5mm; }
+.lead { font-size: 11.2pt; color: #2a4644; }
+.muted { color: var(--muted); }
+b, strong { font-weight: 800; }
+
+.shot { border: 1px solid var(--line); border-radius: 4mm; overflow: hidden; background: var(--soft); box-shadow: 0 4mm 10mm -7mm rgba(18,48,46,.35); margin: 3mm 0 2mm; }
+.shot .bar { height: 6mm; background: #eef4f3; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 1.5mm; padding: 0 3mm; direction: ltr; }
+.shot .bar i { width: 2.2mm; height: 2.2mm; border-radius: 50%; background: #cfdcda; display: block; }
+.shot .bar span { margin-left: 3mm; font-size: 7pt; color: #8aa09d; font-family: Vazirmatn, sans-serif; }
+.shot img { display: block; width: 100%; height: auto; }
+.shot.crop img { object-fit: cover; object-position: top center; }
+.caption { font-size: 8.6pt; color: var(--muted); text-align: center; margin: 0 0 3mm; }
+
+.steps { counter-reset: s; display: flex; flex-direction: column; gap: 3mm; margin: 3mm 0; }
+.step { display: flex; gap: 4mm; align-items: flex-start; background: var(--card); border: 1px solid var(--line); border-radius: 4mm; padding: 3.5mm 4mm; }
+.step::before { counter-increment: s; content: counter(s, persian); flex: none; width: 8mm; height: 8mm; border-radius: 50%; background: var(--primary-soft); color: var(--primary); font-weight: 900; display: flex; align-items: center; justify-content: center; font-size: 10.5pt; }
+.step h4 { font-size: 11pt; font-weight: 800; }
+.step p { margin: 0; color: #36504e; font-size: 9.8pt; }
+
+.note { border-radius: 4mm; padding: 3.5mm 4.5mm; margin: 3mm 0; display: flex; gap: 3.5mm; align-items: flex-start; font-size: 9.8pt; }
+.note .ic { flex: none; width: 7mm; height: 7mm; border-radius: 2.2mm; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 900; font-size: 10pt; }
+.note b { display: block; margin-bottom: .5mm; }
+.tip { background: var(--primary-soft); } .tip .ic { background: var(--primary); }
+.warn { background: var(--amber-soft); } .warn .ic { background: var(--amber); }
+.danger { background: var(--rose-soft); } .danger .ic { background: var(--rose); }
+.info { background: var(--violet-soft); } .info .ic { background: var(--violet); }
+
+table { width: 100%; border-collapse: separate; border-spacing: 0; font-size: 9.6pt; margin: 3mm 0; border: 1px solid var(--line); border-radius: 4mm; overflow: hidden; }
+th { background: var(--soft); text-align: right; font-weight: 800; padding: 2.5mm 3.5mm; border-bottom: 1px solid var(--line); color: #2a4644; }
+td { padding: 2.4mm 3.5mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+tr:last-child td { border-bottom: 0; }
+.pill { display: inline-block; padding: 0 2.6mm; border-radius: 99px; font-size: 8.4pt; font-weight: 700; line-height: 5.6mm; white-space: nowrap; }
+.p-gray { background: #eef2f1; color: #55706d; } .p-blue { background: #e6f2fb; color: #1d6aa3; } .p-green { background: var(--green-soft); color: var(--green); }
+.p-amber { background: var(--amber-soft); color: var(--amber); } .p-violet { background: var(--violet-soft); color: var(--violet); }
+
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 4mm; }
+.grid3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 3.5mm; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 4mm; padding: 4mm; }
+.card .ico { width: 10mm; height: 10mm; border-radius: 3mm; background: var(--primary-soft); color: var(--primary); display: flex; align-items: center; justify-content: center; margin-bottom: 2mm; }
+.card .ico svg { width: 5.5mm; height: 5.5mm; }
+.card h4 { font-size: 11pt; font-weight: 800; margin-bottom: 1mm; }
+.card p { margin: 0; font-size: 9.4pt; color: #3d5654; line-height: 1.85; }
+.kbd, code { font-family: Consolas, "Cascadia Mono", monospace; direction: ltr; unicode-bidi: embed; background: #eef4f3; border: 1px solid var(--line); border-radius: 1.5mm; padding: 0 1.4mm; font-size: 8.8pt; }
+pre { direction: ltr; text-align: left; background: #0f2524; color: #d6f1ec; border-radius: 3.5mm; padding: 3.5mm 4.5mm; font-family: Consolas, "Cascadia Mono", monospace; font-size: 8.6pt; line-height: 1.7; margin: 2.5mm 0; white-space: pre-wrap; word-break: break-all; }
+pre .c { color: #79a7a0; }
+ul.clean { list-style: none; margin: 2mm 0; padding: 0; }
+ul.clean li { position: relative; padding-right: 6mm; margin-bottom: 1.6mm; }
+ul.clean li::before { content: ""; position: absolute; right: 0; top: 2.6mm; width: 2.4mm; height: 2.4mm; border-radius: 50%; background: var(--primary-2); }
+ul.check li::before { content: "✓"; background: none; color: var(--green); font-weight: 900; top: 0; width: auto; height: auto; font-size: 10pt; }
+.legend { display: grid; grid-template-columns: 1fr 1fr; gap: 2mm 6mm; margin-top: 2mm; }
+.legend div { display: flex; gap: 2.5mm; align-items: flex-start; font-size: 9.5pt; }
+.legend span.k { flex: none; width: 6mm; height: 6mm; border-radius: 50%; background: var(--amber); color: #fff; font-weight: 900; font-size: 8.5pt; display: flex; align-items: center; justify-content: center; margin-top: .6mm; }
+.marker { position: absolute; width: 7mm; height: 7mm; border-radius: 50%; background: var(--amber); color: #fff; font-weight: 900; font-size: 9pt; display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 1.3mm rgba(255,255,255,.9), 0 2mm 4mm rgba(0,0,0,.25); }
+.rel { position: relative; }
+
+/* Cover */
+.cover { padding: 0; background: radial-gradient(120% 80% at 85% 10%, #1aa597 0%, #0f6e66 45%, #0a4945 100%); color: #fff; }
+.cover::before { display: none; }
+.cover .deco { position: absolute; border-radius: 50%; background: rgba(255,255,255,.06); }
+.cover .in { position: absolute; inset: 26mm 22mm 24mm; display: flex; flex-direction: column; }
+.cover .badge { align-self: flex-start; background: rgba(255,255,255,.14); border: 1px solid rgba(255,255,255,.25); border-radius: 99px; padding: 1mm 5mm; font-size: 9.5pt; }
+.cover h1 { font-size: 36pt; font-weight: 900; line-height: 1.35; margin-top: 16mm; letter-spacing: -.5pt; }
+.cover h1 small { display: block; font-size: 15pt; font-weight: 500; opacity: .85; margin-top: 3mm; letter-spacing: 0; }
+.cover .tags { display: flex; flex-wrap: wrap; gap: 2.5mm; margin-top: 10mm; }
+.cover .tags span { background: rgba(255,255,255,.12); border-radius: 99px; padding: 1.2mm 4.5mm; font-size: 9.6pt; }
+.cover .hero { margin-top: auto; border-radius: 5mm; overflow: hidden; box-shadow: 0 10mm 22mm -8mm rgba(0,0,0,.55); border: 1px solid rgba(255,255,255,.25); height: 98mm; }
+.cover .hero img { width: 100%; height: 100%; object-fit: cover; object-position: top right; display: block; }
+.cover .meta { display: flex; justify-content: space-between; margin-top: 7mm; font-size: 9.5pt; opacity: .85; }
+.logo { width: 16mm; height: 16mm; border-radius: 5mm; background: #fff; color: var(--primary); display: flex; align-items: center; justify-content: center; }
+.logo svg { width: 9mm; height: 9mm; }
+
+.toc { display: flex; flex-direction: column; gap: 1.6mm; margin-top: 3mm; }
+.toc a { display: flex; align-items: center; gap: 3mm; color: var(--ink); text-decoration: none; padding: 2mm 3mm; border-radius: 3mm; background: var(--soft); font-size: 10pt; }
+.toc a .t { flex: 1; font-weight: 700; }
+.toc a .d { flex: 1 1 auto; border-bottom: 1.5px dotted #b9cbc8; margin: 0 2mm; transform: translateY(-1mm); }
+.toc a .n { width: 7mm; height: 7mm; border-radius: 2mm; background: var(--primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 9pt; flex: none; }
+.toc a .pg { font-weight: 800; color: var(--primary); flex: none; }
+
+.stat { text-align: center; background: var(--soft); border-radius: 4mm; padding: 3.5mm 2mm; }
+.stat b { display: block; font-size: 17pt; color: var(--primary); font-weight: 900; line-height: 1.4; }
+.stat span { font-size: 8.8pt; color: var(--muted); }
+</style>
+</head>
+<body>
+
+<!-- ===================== 1. COVER ===================== -->
+<section class="page cover">
+  <div class="deco" style="width:120mm;height:120mm;left:-40mm;top:-30mm"></div>
+  <div class="deco" style="width:70mm;height:70mm;right:-20mm;top:120mm"></div>
+  <div class="in">
+    <div style="display:flex;align-items:center;gap:4mm">
+      <div class="logo"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.6 13.4 13.4 20.6a2 2 0 0 1-2.8 0L3 13V3h10l7.6 7.6a2 2 0 0 1 0 2.8Z"/><circle cx="7.5" cy="7.5" r="1.5"/><path d="m15 9-6 6"/></svg></div>
+      <div><div style="font-weight:800;font-size:12pt">هومن جمشیدی</div><div style="opacity:.8;font-size:9pt">افزونهٔ ووکامرس</div></div>
+    </div>
+    <h1>راهنمای نصب و استفاده<small>تخفیف گروهی هوشمند — تخفیف روی هزاران محصول، بدون فشار به سرور</small></h1>
+    <div class="tags"><span>درصدی یا مبلغ ثابت</span><span>تقویم شمسی</span><span>دسته‌بندی، محصولات منتخب یا کل انبار</span><span>بدون خطای ۵۰۳</span></div>
+    <div class="hero"><img src="img/home-with-menu.png" alt=""></div>
+    <div class="meta"><span>نسخهٔ ۱٫۱٫۰</span><span>آبان ۱۴۰۵</span></div>
+  </div>
+</section>
+
+<!-- ===================== 2. TOC + INTRO ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>معرفی</span></div>
+  <div class="chapter"><div class="n">۰</div><div><h2>این افزونه چه می‌کند؟</h2><p>در یک نگاه — قبل از شروع</p></div></div>
+  <p class="lead">با این افزونه می‌توانید روی <b>همهٔ محصولات موجود</b>، روی <b>یک یا چند دسته‌بندی</b> یا روی <b>محصولات دلخواه</b> تخفیف درصدی یا مبلغی بگذارید، برایش <b>زمان شروع و پایان شمسی</b> تعیین کنید و خیالتان راحت باشد که قیمت اصلی هر محصول در پایان دقیقاً برمی‌گردد.</p>
+  <div class="grid3" style="margin-top:4mm">
+    <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2v20M2 12h20"/></svg></div><h4>ساده، در ۴ قدم</h4><p>تخفیف ← محصولات ← زمان ← تأیید. بدون نیاز به دانش فنی وردپرس.</p></div>
+    <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="16" rx="3"/><path d="M6 9h12M6 13h8"/></svg></div><h4>هوشمند با سرور</h4><p>کار در دسته‌های کوچک و پس‌زمینه انجام می‌شود و سرعتش خودکار با توان هاست تنظیم می‌شود.</p></div>
+    <div class="card"><div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"/><path d="m9 12 2 2 4-4"/></svg></div><h4>مطمئن</h4><p>هر قیمت بعد از تغییر دوباره کنترل می‌شود؛ قیمت‌های اصلی ذخیره و در پایان برگردانده می‌شوند.</p></div>
+  </div>
+  <h3 style="margin-top:8mm">فهرست مطالب</h3>
+  <div class="toc">
+    <a><span class="n">۱</span><span class="t">پیش‌نیازها و آمادگی</span><span class="pg">۳</span></a>
+    <a><span class="n">۲</span><span class="t">نصب افزونه</span><span class="pg">۴</span></a>
+    <a><span class="n">۳</span><span class="t">آشنایی با صفحهٔ اصلی</span><span class="pg">۵</span></a>
+    <a><span class="n">۴</span><span class="t">ساخت اولین تخفیف (۴ قدم)</span><span class="pg">۶</span></a>
+    <a><span class="n">۵</span><span class="t">پیگیری کمپین و وضعیت‌ها</span><span class="pg">۱۰</span></a>
+    <a><span class="n">۶</span><span class="t">مدیریت کمپین: توقف، پایان، ویرایش، کپی</span><span class="pg">۱۱</span></a>
+    <a><span class="n">۷</span><span class="t">سناریوهای آماده</span><span class="pg">۱۲</span></a>
+    <a><span class="n">۸</span><span class="t">سلامت سرور و تنظیمات</span><span class="pg">۱۳</span></a>
+    <a><span class="n">۹</span><span class="t">بهترین اجرا روی هاست (کران)</span><span class="pg">۱۴</span></a>
+    <a><span class="n">۱۰</span><span class="t">پرسش‌های رایج و عیب‌یابی</span><span class="pg">۱۵</span></a>
+    <a><span class="n">+</span><span class="t">پیوست: نتایج تست و دستورهای فنی</span><span class="pg">۱۶</span></a>
+  </div>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۲</span></div>
+</section>
+
+<!-- ===================== 3. REQUIREMENTS ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>فصل ۱</span></div>
+  <div class="chapter"><div class="n">۱</div><div><h2>پیش‌نیازها و آمادگی</h2><p>پنج دقیقه بررسی قبل از نصب</p></div></div>
+  <table>
+    <tr><th style="width:38%">مورد</th><th style="width:28%">حداقل</th><th>پیشنهادی</th></tr>
+    <tr><td>وردپرس</td><td>۶٫۰</td><td>آخرین نسخه</td></tr>
+    <tr><td>ووکامرس</td><td>۷٫۰</td><td>آخرین نسخه (تست‌شده با ۱۱٫۳)</td></tr>
+    <tr><td>PHP</td><td>۷٫۴</td><td>۸٫۱ یا بالاتر</td></tr>
+    <tr><td>حافظهٔ PHP (memory_limit)</td><td>۶۴ مگابایت</td><td>۱۲۸ مگابایت یا بیشتر</td></tr>
+    <tr><td>زمان اجرای هر درخواست</td><td>۱۵ ثانیه</td><td>۳۰ ثانیه (پیش‌فرض اغلب هاست‌ها)</td></tr>
+    <tr><td>دسترسی کاربر</td><td colspan="2">مدیر کل یا «مدیر فروشگاه» ووکامرس</td></tr>
+  </table>
+  <div class="note tip"><div class="ic">i</div><div><b>نگران هاست اشتراکی نباشید</b>افزونه طوری ساخته شده که روی ارزان‌ترین هاست‌ها هم سایت را کند نکند؛ فقط کار کمی بیشتر طول می‌کشد. روی هاستی با ۸ پروسه، ۱۲۸ مگ حافظه و ۳۰ ثانیه زمان، ۳۰۰۰ محصول در حدود ۳ دقیقه تخفیف گرفتند.</div></div>
+  <h3>قبل از نصب، این کارها را انجام دهید</h3>
+  <ul class="clean check">
+    <li><b>از سایت پشتیبان بگیرید</b> (فایل‌ها و دیتابیس)، مثل قبل از هر تغییر مهم.</li>
+    <li>اگر نسخهٔ آزمایشی (staging) دارید، <b>اول آنجا نصب و امتحان کنید</b>.</li>
+    <li>فایل <code>smart-bulk-discount-1.1.0.zip</code> را دم دست داشته باشید (از حالت فشرده خارج نکنید).</li>
+    <li>اگر افزونهٔ دیگری برای «حراج زمان‌دار» دارید، هم‌زمان روی همان محصولات از دو افزونه استفاده نکنید.</li>
+  </ul>
+  <div class="note warn"><div class="ic">!</div><div><b>یک قانون مهم</b>تا وقتی کمپینی «فعال» یا «در حال اجرا» است، افزونه را غیرفعال یا حذف نکنید. اول کمپین را تمام کنید تا وضعیتش «تمام شده» شود و قیمت‌ها برگردند.</div></div>
+  <h3>این افزونه به چه چیزهایی دست نمی‌زند؟</h3>
+  <div class="grid2">
+    <div class="card"><h4>قیمت عادی محصول</h4><p>فقط «قیمت فروش ویژه» تغییر می‌کند؛ قیمت عادی هرگز عوض نمی‌شود.</p></div>
+    <div class="card"><h4>محصولات ناموجود و پیش‌نویس‌ها</h4><p>محصولات ناموجود (به‌جز وقتی خودتان بخواهید)، پیش‌نویس‌ها و محصولات بی‌قیمت تغییر نمی‌کنند.</p></div>
+  </div>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۳</span></div>
+</section>
+
+<!-- ===================== 4. INSTALL ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>فصل ۲</span></div>
+  <div class="chapter"><div class="n">۲</div><div><h2>نصب افزونه</h2><p>کمتر از یک دقیقه</p></div></div>
+  <div class="steps">
+    <div class="step"><div><h4>به بخش افزونه‌ها بروید</h4><p>در پیشخوان وردپرس: <b>افزونه‌ها ← افزودن</b> (Plugins ← Add New) و بالای صفحه دکمهٔ <b>بارگذاری افزونه</b> (Upload Plugin) را بزنید.</p></div></div>
+    <div class="step"><div><h4>فایل zip را انتخاب و نصب کنید</h4><p>روی <b>انتخاب فایل</b> بزنید، فایل <code>smart-bulk-discount-1.1.0.zip</code> را انتخاب و سپس <b>هم‌اکنون نصب کن</b> (Install Now) را بزنید.</p></div></div>
+  </div>
+  <div class="shot"><div class="bar"><i></i><i></i><i></i><span>wp-admin/plugin-install.php</span></div><img src="img/install-upload.png" alt=""></div>
+  <div class="steps" style="counter-reset: s 2">
+    <div class="step"><div><h4>افزونه را فعال کنید</h4><p>بعد از نصب، روی <b>فعال کردن افزونه</b> بزنید. در فهرست افزونه‌ها این ردیف را می‌بینید:</p></div></div>
+  </div>
+  <div class="shot"><img src="img/install-row.png" alt=""></div>
+  <div class="steps" style="counter-reset: s 3">
+    <div class="step"><div><h4>منوی «تخفیف گروهی» را باز کنید</h4><p>در منوی کناری پیشخوان، گزینهٔ <b>تخفیف گروهی</b> (با آیکن برچسب) اضافه شده است. همین! افزونه آماده است و تنظیم اضافه‌ای لازم ندارد.</p></div></div>
+  </div>
+  <div class="note info"><div class="ic">؟</div><div><b>اگر پیام «ووکامرس لازم است» دیدید</b>یعنی ووکامرس غیرفعال است. اول ووکامرس را فعال کنید.</div></div>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۴</span></div>
+</section>
+
+<!-- ===================== 5. HOME ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>فصل ۳</span></div>
+  <div class="chapter"><div class="n">۳</div><div><h2>آشنایی با صفحهٔ اصلی</h2><p>همه چیز در یک صفحه</p></div></div>
+  <div class="rel">
+    <div class="shot"><div class="bar"><i></i><i></i><i></i><span>تخفیف گروهی</span></div><img src="img/home-with-menu.png" alt=""></div>
+    <div class="marker" style="right:2mm;top:42mm">۱</div>
+    <div class="marker" style="left:55mm;top:12mm">۲</div>
+    <div class="marker" style="right:2mm;top:22mm">۳</div>
+    <div class="marker" style="right:8mm;top:57mm">۴</div>
+    <div class="marker" style="right:8mm;top:83mm">۵</div>
+  </div>
+  <div class="legend">
+    <div><span class="k">۱</span><span><b>منوی تخفیف گروهی</b> — در منوی کناری وردپرس.</span></div>
+    <div><span class="k">۲</span><span><b>بخش‌ها:</b> کمپین‌ها، تخفیف جدید، سلامت سرور، تنظیمات.</span></div>
+    <div><span class="k">۳</span><span><b>شروع سریع:</b> ۴ سناریوی آماده؛ با یک کلیک فرم تخفیف با تنظیمات مناسب باز می‌شود.</span></div>
+    <div><span class="k">۴</span><span><b>در جریان:</b> کمپین‌های فعال، زمان‌بندی‌شده و در حال اجرا با نوار پیشرفت.</span></div>
+    <div><span class="k">۵</span><span><b>پیش‌نویس‌ها و تمام‌شده‌ها:</b> برای ویرایش، کپی یا اجرای دوباره.</span></div>
+  </div>
+  <div class="note tip" style="margin-top:4mm"><div class="ic">i</div><div><b>هر کارت قابل کلیک است</b>روی هر کمپین بزنید تا جزئیات، پیشرفت و فهرست محصولاتش را ببینید.</div></div>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۵</span></div>
+</section>
+
+<!-- ===================== 6. WIZARD STEP 1 ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>فصل ۴ · قدم ۱ از ۴</span></div>
+  <div class="chapter"><div class="n">۴</div><div><h2>ساخت اولین تخفیف</h2><p>دکمهٔ «تخفیف جدید» یا یکی از کارت‌های «شروع سریع»</p></div></div>
+  <h3>قدم ۱ — چه تخفیفی؟</h3>
+  <p><b>درصدی</b> (مثلاً ۲۰٪) یا <b>مبلغ ثابت</b> (مثلاً ۵۰٬۰۰۰ تومان) را انتخاب و مقدار را وارد کنید. دکمه‌های آمادهٔ ۵٪ تا ۵۰٪ کار را سریع‌تر می‌کنند. کادر کناری بلافاصله نشان می‌دهد قیمت یک محصول نمونه چقدر می‌شود.</p>
+  <div class="shot crop"><div class="bar"><i></i><i></i><i></i><span>تخفیف جدید · قدم ۱</span></div><img src="img/wizard-1.png" alt="" style="height:96mm"></div>
+  <h3>«تنظیمات بیشتر» (اختیاری)</h3>
+  <table>
+    <tr><th style="width:30%">گزینه</th><th>یعنی چه؟</th></tr>
+    <tr><td><b>رُند کردن</b></td><td>قیمت نهایی به پایین گرد می‌شود (مثلاً ۱۰۲٬۴۶۸ ← ۱۰۲٬۰۰۰). مشتری هیچ‌وقت بیشتر از تخفیف اعلام‌شده نمی‌پردازد.</td></tr>
+    <tr><td><b>محصولی که از قبل تخفیف دارد</b></td><td><span class="pill p-green">هر کدام ارزان‌تر بود</span> (پیشنهادی) · <span class="pill p-amber">تخفیف جدید جایگزین شود</span> · <span class="pill p-gray">به آن دست نزن</span>. در پایان، تخفیف قبلی محصول برمی‌گردد.</td></tr>
+    <tr><td><b>کمترین قیمت مجاز</b></td><td>اگر قیمت بعد از تخفیف از این عدد کمتر شود، آن محصول رد می‌شود.</td></tr>
+  </table>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۶</span></div>
+</section>
+
+<!-- ===================== 7. WIZARD STEP 2 ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>فصل ۴ · قدم ۲ از ۴</span></div>
+  <h3 style="margin-top:0">قدم ۲ — روی کدام محصولات؟</h3>
+  <p>یکی از سه حالت را انتخاب کنید. پایین صفحه همیشه <b>تعداد دقیق محصولاتی که تخفیف می‌گیرند</b> نوشته شده است (هر تنوعِ محصول متغیر جداگانه شمرده می‌شود).</p>
+  <div class="grid3">
+    <div class="card"><h4>همهٔ محصولات موجود</h4><p>هر محصولی که الان موجود است. ناموجودها دست نمی‌خورند. می‌توانید چند دسته را هم <b>مستثنا</b> کنید.</p></div>
+    <div class="card"><h4>یک یا چند دسته‌بندی</h4><p>تیک دسته‌ها را بزنید. زیرمجموعه‌ها خودکار حساب می‌شوند (قابل خاموش کردن).</p></div>
+    <div class="card"><h4>محصولات دلخواه</h4><p>جستجو با <b>نام</b>، <b>کد محصول (SKU)</b> یا <b>شناسه</b> و اضافه کردن به «سبد انتخاب».</p></div>
+  </div>
+  <div class="shot crop"><div class="bar"><i></i><i></i><i></i><span>قدم ۲ · یک یا چند دسته‌بندی</span></div><img src="img/wizard-2-categories.png" alt="" style="height:108mm"></div>
+  <p class="caption">انتخاب دسته‌ها: «کتاب کودک» و «رمان» به همراه زیرمجموعه‌هایشان</p>
+  <div class="note tip"><div class="ic">i</div><div><b>تعداد زنده</b>هر بار که انتخاب را عوض می‌کنید، تعداد محصولات و تعداد مواردی که در کمپین فعال دیگری هستند (و رد می‌شوند) دوباره حساب می‌شود.</div></div>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۷</span></div>
+</section>
+
+<!-- ===================== 8. WIZARD STEP 2 (basket) ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>فصل ۴ · قدم ۲ از ۴</span></div>
+  <h3 style="margin-top:0">محصولات دلخواه و «سبد انتخاب»</h3>
+  <p>محصولات را جستجو و تیک بزنید؛ هر محصول به <b>سبد انتخاب</b> (کادر کنار فهرست) اضافه می‌شود. <b>جستجوی بعدی، تغییر دسته یا رفتن به صفحهٔ بعد، سبد را پاک نمی‌کند</b>؛ پس می‌توانید با چند جستجوی مختلف، فهرست دلخواهتان را بسازید. حتی اگر صفحه را رفرش کنید، سبد سر جایش می‌ماند.</p>
+  <div class="shot crop"><div class="bar"><i></i><i></i><i></i><span>قدم ۲ · محصولات دلخواه</span></div><img src="img/wizard-2-products.png" alt="" style="height:150mm"></div>
+  <table>
+    <tr><th style="width:32%">برچسب کنار محصول</th><th>یعنی</th></tr>
+    <tr><td><span class="pill p-amber">تخفیف دارد</span></td><td>محصول از قبل قیمت فروش ویژه دارد (طبق تنظیم «محصولی که از قبل تخفیف دارد» رفتار می‌شود).</td></tr>
+    <tr><td><span class="pill p-violet">در کمپین ۱</span></td><td>در کمپین فعال دیگری است؛ این کمپین به آن دست نمی‌زند.</td></tr>
+    <tr><td><span class="pill p-gray">ناموجود</span></td><td>اگر «محصولات ناموجود سبد را رد کن» روشن باشد، رد می‌شود.</td></tr>
+  </table>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۸</span></div>
+</section>
+
+<!-- ===================== 9. WIZARD STEP 3 ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>فصل ۴ · قدم ۳ از ۴</span></div>
+  <h3 style="margin-top:0">قدم ۳ — چه زمانی؟</h3>
+  <p>همهٔ تاریخ‌ها <b>شمسی</b> و به <b>وقت سایت</b> (تهران) هستند. در زمان پایان، قیمت‌ها <b>خودکار</b> به حالت قبل برمی‌گردند.</p>
+  <table>
+    <tr><th style="width:30%">حالت</th><th>کاربرد</th></tr>
+    <tr><td><b>از همین الان</b></td><td>تا وقتی خودتان «پایان تخفیف» را بزنید.</td></tr>
+    <tr><td><b>از الان تا تاریخ مشخص</b></td><td>مثلاً تا جمعه شب. دکمه‌های آماده: ۶ ساعت، ۱ روز، ۳ روز، ۱ هفته دیگر.</td></tr>
+    <tr><td><b>بازهٔ زمانی دلخواه</b></td><td>شروع و پایان در آینده؛ کمپین خودش سر وقت شروع و تمام می‌شود.</td></tr>
+    <tr><td><b>تکرارشونده</b></td><td>هر روز یا هر هفته در همان ساعت‌ها (مثلاً «جمعه‌های تخفیف»).</td></tr>
+  </table>
+  <div class="grid2" style="align-items:start">
+    <div><div class="shot crop"><div class="bar"><i></i><i></i><i></i><span>تقویم شمسی</span></div><img src="img/wizard-3-calendar.png" alt="" style="height:96mm;object-position:top right"></div>
+    <p class="caption">روی کادر تاریخ بزنید تا تقویم شمسی باز شود؛ ماه و سال را هم می‌شود جدا عوض کرد.</p></div>
+    <div><div class="shot crop"><div class="bar"><i></i><i></i><i></i><span>از الان تا تاریخ مشخص</span></div><img src="img/wizard-3-timing.png" alt="" style="height:96mm;object-position:top left"></div>
+    <p class="caption">ساعت و دقیقه کنار تاریخ انتخاب می‌شود (پیش‌فرض پایان: ۲۳:۵۹).</p></div>
+  </div>
+  <div class="note warn"><div class="ic">!</div><div><b>سر ساعت پایان چه می‌شود؟</b>از همان لحظه، قیمت تخفیفی در سایت و سبد خرید <b>نمایش داده نمی‌شود</b>، حتی پیش از آنکه همهٔ قیمت‌ها در دیتابیس برگردند. پس هیچ خریدی بعد از پایان با تخفیف ثبت نمی‌شود.</div></div>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۹</span></div>
+</section>
+
+<!-- ===================== 10. WIZARD STEP 4 + STATUS ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>فصل ۴ و ۵</span></div>
+  <h3 style="margin-top:0">قدم ۴ — مرور و تأیید</h3>
+  <p>خلاصهٔ کمپین با یک جملهٔ ساده و چند <b>نمونه قیمت قبل/بعد</b> نشان داده می‌شود. اگر همه چیز درست است <b>«همین الان شروع کن»</b> (یا برای زمان آینده <b>«زمان‌بندی کن»</b>) را بزنید. «ذخیره بدون شروع» کمپین را به‌صورت پیش‌نویس نگه می‌دارد.</p>
+  <div class="shot crop"><div class="bar"><i></i><i></i><i></i><span>قدم ۴ · مرور نهایی</span></div><img src="img/wizard-4-review.png" alt="" style="height:86mm"></div>
+  <div class="chapter" style="margin-top:6mm"><div class="n">۵</div><div><h2>پیگیری کمپین و وضعیت‌ها</h2><p>بعد از شروع، لازم نیست صفحه باز بماند</p></div></div>
+  <table>
+    <tr><th style="width:30%">وضعیت</th><th>یعنی چه؟</th></tr>
+    <tr><td><span class="pill p-gray">پیش‌نویس</span></td><td>ساخته شده ولی شروع نشده.</td></tr>
+    <tr><td><span class="pill p-violet">زمان‌بندی شده</span></td><td>منتظر زمان شروع است؛ خودکار شروع می‌شود.</td></tr>
+    <tr><td><span class="pill p-blue">در حال آماده‌سازی / اعمال / بررسی</span></td><td>فهرست محصولات ساخته، قیمت‌ها کم‌کم عوض و سپس <b>همه دوباره کنترل</b> می‌شوند.</td></tr>
+    <tr><td><span class="pill p-green">فعال</span></td><td>تخفیف روی همهٔ محصولات انتخابی اعمال و کنترل شده است.</td></tr>
+    <tr><td><span class="pill p-amber">در حال برگرداندن / بررسی نهایی</span></td><td>زمان پایان رسیده یا دستی تمامش کرده‌اید؛ قیمت‌ها برمی‌گردند.</td></tr>
+    <tr><td><span class="pill p-gray">تمام شده</span></td><td>همهٔ قیمت‌ها برگشته‌اند. می‌توانید کپی یا دوباره اجرایش کنید.</td></tr>
+  </table>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۱۰</span></div>
+</section>
+
+<!-- ===================== 11. DETAIL + ACTIONS ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>فصل ۵ و ۶</span></div>
+  <h3 style="margin-top:0">صفحهٔ کمپین در حال اجرا</h3>
+  <p>نوار پیشرفت، تعداد محصولات بررسی‌شده و زمان آخرین دسته را می‌بینید. پایین صفحه فهرست کامل محصولات با <b>قیمت اصلی</b>، <b>قیمت تخفیفی</b> و <b>وضعیت هر محصول</b> هست و رویدادها به‌ترتیب ثبت می‌شوند.</p>
+  <div class="shot crop"><div class="bar"><i></i><i></i><i></i><span>حراج پاییزه · در حال اعمال</span></div><img src="img/detail-applying.png" alt="" style="height:100mm"></div>
+  <div class="chapter" style="margin-top:5mm"><div class="n">۶</div><div><h2>مدیریت کمپین</h2><p>دکمه‌های بالای صفحهٔ کمپین</p></div></div>
+  <table>
+    <tr><th style="width:26%">دکمه</th><th>چه می‌کند؟</th></tr>
+    <tr><td><b>توقف موقت / ادامه</b></td><td>کار را نگه می‌دارد و بعد از همان نقطه ادامه می‌دهد. اگر زمان پایان برسد، قیمت‌ها حتی در حالت توقف موقت برمی‌گردند.</td></tr>
+    <tr><td><b>پایان تخفیف</b></td><td>تخفیف را همین الان تمام می‌کند. ۵ ثانیه فرصت «منصرف شدم» دارید.</td></tr>
+    <tr><td><b>لغو زمان‌بندی</b></td><td>کمپین زمان‌بندی‌شده را به پیش‌نویس برمی‌گرداند (قیمتی تغییر نکرده است).</td></tr>
+    <tr><td><b>ویرایش</b></td><td>برای پیش‌نویس، زمان‌بندی‌شده و تمام‌شده. کمپین در حال اجرا را اول تمام کنید.</td></tr>
+    <tr><td><b>کپی</b></td><td>یک نسخهٔ پیش‌نویس با همان تنظیمات می‌سازد؛ برای کمپین‌های تکراری عالی است.</td></tr>
+    <tr><td><b>تلاش دوباره</b></td><td>اگر محصولی بعد از ۳ بار تلاش تغییر نکرده باشد، دوباره در صف قرار می‌گیرد.</td></tr>
+    <tr><td><b>حذف</b></td><td>فقط برای پیش‌نویس و تمام‌شده، با شمارش معکوس برای انصراف.</td></tr>
+  </table>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۱۱</span></div>
+</section>
+
+<!-- ===================== 12. SCENARIOS ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>فصل ۷</span></div>
+  <div class="chapter"><div class="n">۷</div><div><h2>سناریوهای آماده</h2><p>چند دستور پخت برای موقعیت‌های رایج</p></div></div>
+  <div class="grid2">
+    <div class="card"><h4>🛍 حراج کل فروشگاه</h4><p>محصولات: <b>همهٔ موجودها</b> · زمان: <b>از الان تا تاریخ مشخص</b><br>مثال: ۲۰٪ تا جمعه ساعت ۲۳:۵۹، رُند به ۱٬۰۰۰ تومان.</p></div>
+    <div class="card"><h4>📚 تخفیف یک دسته‌بندی</h4><p>محصولات: <b>دسته‌بندی</b> · زمان: <b>بازهٔ دلخواه</b><br>مثال: ۱۵٪ روی «کتاب کودک» از پنجشنبه ۱۸:۰۰ تا جمعه ۲۳:۵۹.</p></div>
+    <div class="card"><h4>⭐ محصولات منتخب</h4><p>محصولات: <b>دلخواه</b> · زمان: <b>از همین الان</b><br>مثال: ۵۰٬۰۰۰ تومان تخفیف روی ۱۲ کتاب ویژهٔ نمایشگاه.</p></div>
+    <div class="card"><h4>🔁 جمعه‌های تخفیف</h4><p>زمان: <b>تکرارشونده، هر هفته</b><br>بعد از هر دوره قیمت‌ها برمی‌گردند و دورهٔ بعد خودکار زمان‌بندی می‌شود.</p></div>
+    <div class="card"><h4>🌙 ساعت طلایی هر شب</h4><p>زمان: <b>تکرارشونده، هر روز</b><br>مثال: هر شب ۲۰:۰۰ تا ۲۲:۰۰، ۱۰٪ روی همهٔ موجودها.</p></div>
+    <div class="card"><h4>🎯 کل انبار به‌جز…</h4><p>همهٔ موجودها + <b>مستثنا کردن دسته‌ها</b><br>مثال: ۲۵٪ روی همه چیز به‌جز «لوازم‌التحریر».</p></div>
+  </div>
+  <h3>دو کمپین هم‌زمان؟</h3>
+  <p>مجاز است. هر محصول در هر لحظه فقط در <b>یک</b> کمپین فعال است؛ کمپین دوم محصولاتی را که در کمپین اول هستند <b>رد می‌کند</b> و قیمتشان را خراب نمی‌کند. وقتی کمپین اول تمام شد، می‌توانید کمپین دوم را کپی و دوباره اجرا کنید تا آن محصولات را هم بگیرد.</p>
+  <div class="shot crop"><div class="bar"><i></i><i></i><i></i><span>کمپین زمان‌بندی‌شده با تکرار هفتگی</span></div><img src="img/detail-scheduled.png" alt="" style="height:62mm"></div>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۱۲</span></div>
+</section>
+
+<!-- ===================== 13. HEALTH + SETTINGS ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>فصل ۸</span></div>
+  <div class="chapter"><div class="n">۸</div><div><h2>سلامت سرور و تنظیمات</h2><p>معمولاً لازم نیست چیزی را تغییر دهید</p></div></div>
+  <p><b>سلامت سرور</b> نشان می‌دهد افزونه چقدر به سرور فشار می‌آورد: اندازهٔ هر دسته، زمان هر محصول، حافظهٔ مصرفی و وضعیت هاست. اگر چیزی نیاز به توجه داشته باشد، با رنگ نارنجی مشخص می‌شود.</p>
+  <div class="shot crop"><div class="bar"><i></i><i></i><i></i><span>سلامت سرور</span></div><img src="img/system.png" alt="" style="height:98mm"></div>
+  <div class="grid2" style="align-items:start">
+    <div class="shot crop" style="margin-top:0"><div class="bar"><i></i><i></i><i></i><span>تنظیمات</span></div><img src="img/settings.png" alt="" style="height:66mm"></div>
+    <table style="margin-top:0">
+      <tr><th>سرعت کار</th><th>برای</th></tr>
+      <tr><td><b>ملایم</b></td><td>هاست اشتراکی ارزان</td></tr>
+      <tr><td><b>خودکار</b> <span class="pill p-green">پیشنهادی</span></td><td>بیشتر سایت‌ها</td></tr>
+      <tr><td><b>سریع</b></td><td>سرور اختصاصی/مجازی قوی</td></tr>
+    </table>
+  </div>
+  <ul class="clean" style="font-size:9.6pt">
+    <li><b>وقتی سرور شلوغ است، آهسته‌تر کار کن:</b> اگر بار پردازنده بالاتر از حالت معمول همین سرور باشد، کار آهسته‌تر ادامه پیدا می‌کند؛ هیچ‌وقت کاملاً متوقف نمی‌شود.</li>
+    <li><b>کمک صفحهٔ باز:</b> اگر کران هاست کند باشد، تا وقتی صفحهٔ افزونه باز است کار جلو می‌رود.</li>
+    <li><b>ادامهٔ خودکار با درخواست داخلی:</b> فقط اگر هاست درخواست سایت به خودش را می‌بندد، خاموشش کنید.</li>
+  </ul>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۱۳</span></div>
+</section>
+
+<!-- ===================== 14. CRON ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>فصل ۹</span></div>
+  <div class="chapter"><div class="n">۹</div><div><h2>بهترین اجرا روی هاست</h2><p>اختیاری، ولی برای سایت‌های کم‌بازدید یا کاتالوگ بزرگ توصیه می‌شود</p></div></div>
+  <p>افزونه به‌طور پیش‌فرض بدون هیچ تنظیمی کار می‌کند: هر دسته، دستهٔ بعدی را خودش شروع می‌کند و «نگهبان» افزونه هر ۲ دقیقه کار گیرکرده را دوباره راه می‌اندازد. نگهبان با زمان‌بند وردپرس (WP-Cron) اجرا می‌شود و این زمان‌بند فقط با بازدید از سایت فعال می‌شود. اگر سایت شما در ساعاتی بازدید ندارد (مثلاً نیمه‌شب که زمان شروع حراج است)، یک <b>کران واقعی</b> روی هاست بگذارید تا شروع و پایان دقیقاً سر وقت باشد.</p>
+  <h3>در cPanel</h3>
+  <div class="steps">
+    <div class="step"><div><h4>Cron Jobs را باز کنید</h4><p>در cPanel بخش <b>Advanced ← Cron Jobs</b>. زمان‌بندی را <b>Once Per Minute</b> (هر دقیقه) بگذارید.</p></div></div>
+    <div class="step"><div><h4>این دستور را وارد کنید</h4><p>به‌جای <code>example.com</code> آدرس سایت خودتان را بنویسید:</p>
+      <pre>wget -q -O - "https://example.com/wp-cron.php?doing_wp_cron" &gt;/dev/null 2&gt;&amp;1</pre></div></div>
+    <div class="step"><div><h4>(اختیاری) کران داخلی وردپرس را خاموش کنید</h4><p>در فایل <code>wp-config.php</code>، بالای خط «That's all, stop editing» اضافه کنید:</p>
+      <pre>define( 'DISABLE_WP_CRON', true );</pre></div></div>
+  </div>
+  <p class="muted" style="font-size:9.4pt">در DirectAdmin: <b>Advanced Features ← Cron Jobs</b> با همان دستور. در Plesk: <b>Scheduled Tasks</b> با نوع «Fetch a URL» و آدرس بالا.</p>
+  <div class="note tip"><div class="ic">i</div><div><b>چطور بفهمم درست کار می‌کند؟</b>در حین اجرای کمپین، «آخرین فعالیت» در «سلامت سرور» چند ثانیه پیش را نشان می‌دهد. اگر قدم ۳ را انجام داده باشید، مورد «زمان‌بند وردپرس» نارنجی می‌شود و یادآوری می‌کند که کران سرور لازم است؛ این طبیعی است. اگر صفحهٔ کمپین نوشت «کمی کند است»، کران را بررسی کنید یا صفحهٔ افزونه را باز نگه دارید.</div></div>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۱۴</span></div>
+</section>
+
+<!-- ===================== 15. FAQ ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>فصل ۱۰</span></div>
+  <div class="chapter"><div class="n">۱۰</div><div><h2>پرسش‌های رایج و عیب‌یابی</h2><p>جواب‌های کوتاه</p></div></div>
+  <table>
+    <tr><th style="width:36%">پرسش</th><th>پاسخ</th></tr>
+    <tr><td><b>اگر وسط کمپین قیمت محصولی را دستی عوض کنم؟</b></td><td>در پایان، قیمتی که شما گذاشته‌اید <b>حفظ می‌شود</b> و افزونه آن را با قیمت قدیمی رونویسی نمی‌کند (در فهرست با «دست‌نخورده ماند» دیده می‌شود).</td></tr>
+    <tr><td><b>اگر سایت یا سرور وسط کار از کار بیفتد؟</b></td><td>پیشرفت محصول‌به‌محصول ذخیره می‌شود. وقتی سایت برگردد، کار از همان‌جا ادامه پیدا می‌کند و اگر زمان پایان گذشته باشد، قیمت‌ها برمی‌گردند. این حالت با قطع ناگهانی پردازش هر ۳ ثانیه تست شده است.</td></tr>
+    <tr><td><b>محصولی تخفیف نگرفت. چرا؟</b></td><td>در صفحهٔ کمپین فیلتر «ردشده» را بزنید؛ دلیل هر مورد نوشته شده: ناموجود، تخفیف قبلی‌اش بیشتر بود، در کمپین دیگری است، قیمت ندارد، تخفیف از قیمت بیشتر است و…</td></tr>
+    <tr><td><b>کمپین روی «در حال اعمال» مانده.</b></td><td>صفحهٔ افزونه را باز بگذارید (خودش کمک می‌کند) و «سلامت سرور» را ببینید. اگر «زمان‌بند وردپرس» غیرفعال است، کران را طبق فصل ۹ تنظیم کنید.</td></tr>
+    <tr><td><b>روی قیمت محصولات متغیر هم کار می‌کند؟</b></td><td>بله. هر تنوع جداگانه تخفیف می‌گیرد و بازهٔ قیمت محصول درست نمایش داده می‌شود.</td></tr>
+    <tr><td><b>فیلتر و مرتب‌سازی قیمت فروشگاه چه می‌شود؟</b></td><td>جدول قیمت ووکامرس هم به‌روز و کنترل می‌شود؛ فیلتر قیمت و مرتب‌سازی درست کار می‌کنند.</td></tr>
+    <tr><td><b>کش سایت (LiteSpeed و…) دارم.</b></td><td>مشکلی نیست. اگر صفحه‌ای قیمت قدیمی نشان داد، کش آن صفحه را پاک کنید.</td></tr>
+    <tr><td><b>چطور افزونه را کامل حذف کنم؟</b></td><td>همهٔ کمپین‌ها را تمام کنید. در «تنظیمات» گزینهٔ «هنگام حذف، داده‌ها هم پاک شود» را روشن و سپس افزونه را حذف کنید. تا وقتی کمپین فعالی باشد، داده‌ها برای حفظ قیمت‌های اصلی پاک نمی‌شوند.</td></tr>
+  </table>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۱۵</span></div>
+</section>
+
+<!-- ===================== 16. APPENDIX ===================== -->
+<section class="page">
+  <div class="run"><span><b>تخفیف گروهی هوشمند</b> · راهنمای نصب و استفاده</span><span>پیوست</span></div>
+  <div class="chapter"><div class="n">+</div><div><h2>پیوست: نتایج تست و دستورهای فنی</h2><p>برای مدیر فنی یا پشتیبان هاست</p></div></div>
+  <h3 style="margin-top:0">نتایج تست روی ۳۰۰۰ محصول</h3>
+  <p class="muted" style="font-size:9.4pt">هاست شبیه‌سازی‌شده: ۸ پروسهٔ PHP، حافظهٔ ۱۲۸ مگ، سقف زمان ۳۰ ثانیه، با ۶ کاربر هم‌زمان در حال خرید.</p>
+  <div class="grid3" style="grid-template-columns:repeat(4,1fr)">
+    <div class="stat"><b>۵۰۰۰/۵۰۰۰</b><span>درخواست موفق کاربران</span></div>
+    <div class="stat"><b>۰</b><span>خطای ۵۰۳ یا تایم‌اوت</span></div>
+    <div class="stat"><b>~۳ دقیقه</b><span>تخفیف روی ۳۳۳۹ قلم</span></div>
+    <div class="stat"><b>۱۴ مگ</b><span>بیشترین حافظهٔ هر دسته</span></div>
+  </div>
+  <table>
+    <tr><th>سناریو</th><th style="width:22%">نتیجه</th></tr>
+    <tr><td>همهٔ محصولات موجود / دسته‌بندی‌ها با استثنا / محصولات منتخب با تنوع‌ها</td><td><span class="pill p-green">صفر قیمت اشتباه</span></td></tr>
+    <tr><td>دو کمپین هم‌زمان روی محصولات مشترک</td><td><span class="pill p-green">بدون تداخل</span></td></tr>
+    <tr><td>زمان‌بندی شمسی، پنهان شدن تخفیف سر ساعت پایان، تکرار روزانه</td><td><span class="pill p-green">قبول</span></td></tr>
+    <tr><td>قطع ناگهانی پردازش هر ۳ ثانیه (۱۰ بار در هر اجرا)</td><td><span class="pill p-green">قیمت‌ها دقیق</span></td></tr>
+    <tr><td>ویرایش دستی وسط کمپین، توقف موقت/ادامه، هاست ضعیف</td><td><span class="pill p-green">قبول</span></td></tr>
+  </table>
+  <h3>دستورهای WP-CLI</h3>
+  <pre><span class="c"># فهرست کمپین‌ها و وضعیتشان</span>
+wp dsd list
+<span class="c"># اجرای صف در پس‌زمینه با همان محدودیت‌های وب (برای کاتالوگ‌های خیلی بزرگ)</span>
+wp dsd run
+<span class="c"># شروع / توقف موقت / ادامه / پایان / تلاش دوباره یک کمپین</span>
+wp dsd campaign start 12
+wp dsd campaign stop 12
+<span class="c"># جزئیات یک کمپین به‌صورت JSON</span>
+wp dsd status 12</pre>
+  <div class="note info"><div class="ic">i</div><div><b>جزئیات فنی</b>قیمت‌ها با قیمت فروش ویژهٔ خود ووکامرس اعمال می‌شوند (سازگار با فید قیمت‌ها و مقایسه‌گرها). در هر لحظه فقط یک دسته در کل سایت اجرا می‌شود، هر دسته کوتاه است (حداکثر ۴۰٪ زمان مجاز هر درخواست) و بین محصولات استراحت می‌کند تا پردازنده و دیتابیس برای خریداران آزاد بماند. اگر سرور کند شود، افزونه خودش آهسته‌تر می‌شود.</div></div>
+  <div class="foot"><span>هومن جمشیدی · تخفیف گروهی هوشمند ۱٫۱٫۰</span><span class="num">۱۶</span></div>
+</section>
+
+</body>
+</html>
