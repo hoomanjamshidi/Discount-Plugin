@@ -11,7 +11,7 @@
  *   hide_proc      open_basedir hides /proc (cPanel/CloudLinux shared hosts)
  *   block_loopback the site's own admin-ajax loopback gets 403 (firewall / CDN challenge)
  *   no_cron        WP-Cron never fires from page loads (DISABLE_WP_CRON without a real cron)
- *   fatal_on       product IDs whose save dies with a fatal error (a buggy plugin)
+ *   fatal_on       product IDs whose save dies with a real fatal error (a buggy plugin runs out of memory)
  *   jalali_dates   wp_date()/date_i18n() return Persian digits (like WP-Parsidate / wp-jalali)
  *   fake_cache     a page-cache plugin like WP Rocket/LiteSpeed: counts per-post purges and full purges
  *   count_rocket   count real WP Rocket purges (per post / whole domain)
@@ -106,7 +106,9 @@ if ( ! empty( $dsd_sim['count_rocket'] ) ) {
 
 $dsd_sim_on_save = static function ( $product_id ) use ( $dsd_sim ) {
 	if ( ! empty( $dsd_sim['fatal_on'] ) && in_array( (int) $product_id, array_map( 'intval', (array) $dsd_sim['fatal_on'] ), true ) ) {
-		dsd_sim_undefined_function_to_crash(); // Fatal error, like a broken plugin.
+		// A real, uncatchable fatal error: a buggy plugin exhausting memory_limit. (Calling an
+		// undefined function would only throw an Error, which the engine catches per product.)
+		$GLOBALS['dsd_sim_leak'] = str_repeat( 'x', 4 * 1024 * 1024 * 1024 );
 	}
 	if ( ! empty( $dsd_sim['save_ms'] ) ) {
 		$until = microtime( true ) + (int) $dsd_sim['save_ms'] / 1000;

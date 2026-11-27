@@ -69,7 +69,7 @@ def restore(loopback=False):
     wp("cache", "flush", "--quiet")
     wp("option", "update", "dsd_settings",
        json.dumps({"profile": "auto", "pause_on_high_load": True, "admin_runner": True, "loopback": loopback,
-                   "round_step": 0, "delete_data_on_uninstall": False}), "--format=json", "--quiet")
+                   "cache_compat": True, "round_step": 0, "delete_data_on_uninstall": False}), "--format=json", "--quiet")
     wp("option", "delete", "dsd_governor", "--quiet", ok_codes=(0, 1))
 
 
@@ -684,8 +684,10 @@ def s16_fatal_error_in_another_plugin():
     check(counts["pending"] == 0, f"items left pending: {counts}")
     check(counts["applied"] >= len(ids) - 1, f"the other products were not all applied: {counts}")
     skip = sysinfo.get("last_skip") or {}
-    check(skip.get("reason") == "crashed" and "dsd_sim_undefined_function_to_crash" in (skip.get("note") or ""),
+    check(skip.get("reason") == "crashed" and "Allowed memory size" in (skip.get("note") or ""),
           f"the crash was not recorded for the System page: {skip}")
+    check(any(i["note"] == "crashed" or int(i["attempts"]) > 0 for i in rows["items"]),
+          f"the crashed product was not counted as a failed attempt: {rows['items']}")
     rest("POST", f"campaigns/{cid}/stop", auth)
     _, revert_secs = wait_rest_status(cid, auth, ["ended"], 900)
     set_sim()
@@ -714,7 +716,8 @@ def s17_dates_with_persian_date_plugin():
         check(a["starts_at"] == calendar.timegm((2099, 1, 10, 5, 0, 0)), f"wrong UTC time: {a['starts_at']}")
         b = rest("POST", "campaigns", auth, {**body, "starts_at": "۲۰۹۹-۰۱-۱۰ ۰۸:۳۰", "ends_at": "۲۰۹۹-۰۱-۱۲ ۲۳:۵۹"})
         check(b["starts_at"] == a["starts_at"] and b["ends_at"] == a["ends_at"], "Persian digits not understood")
-        j = rest("POST", "campaigns", auth, {**body, "starts_at": "1477/10/20 08:30", "ends_at": "1477/10/22 23:59"})
+        # 2099-01-10 is 21 Dey 1477 (same as the admin app's date-fns-jalali and Clock::gregorian_to_jalali).
+        j = rest("POST", "campaigns", auth, {**body, "starts_at": "1477/10/21 08:30", "ends_at": "1477/10/23 23:59"})
         check(j["starts_local"] == "2099-01-10 08:30", f"Jalali input misread: {j['starts_local']}")
         code = None
         try:
@@ -783,7 +786,16 @@ def s19_real_wp_rocket():
     cached product pages never show a stale price."""
     restore()
     rocket_zip = "/tests/integration/.out/third-party/wp-rocket.zip"
-    check(os.path.exists(os.path.join(OUT_HOST, "third-party", "wp-rocket.zip")), "wp-rocket.zip missing (tests/integration/.out/third-party)")
+    zip_path = os.path.join(OUT_HOST, "third-party", "wp-rocket.zip")
+    check(os.path.exists(zip_path), "wp-rocket.zip missing (tests/integration/.out/third-party)")
+    # Reseller builds wrap WP Rocket in an ionCube-encrypted license check: they cannot run
+    # without the ionCube Loader and their licence, and would break every page load here.
+    import zipfile
+    with zipfile.ZipFile(zip_path) as z:
+        check("wp-rocket/wp-rocket.php" in z.namelist(), "wp-rocket.zip must contain the wp-rocket/ plugin folder")
+        locked = [n for n in z.namelist() if n.endswith(".php") and b"ionCube" in z.read(n)[:400]]
+    check(not locked, f"wp-rocket.zip is an ionCube-encrypted (reseller) build: {locked[:2]}; "
+                      "use the official package downloaded from your wp-rocket.me account")
     sh(DC + ["exec", "-T", "cli", "sh", "-c",
              f"test -d /var/www/html/wp-content/plugins/wp-rocket || (cd /var/www/html/wp-content/plugins && unzip -q {rocket_zip})"])
     ids = probe("pick", 40, "simple")
@@ -849,7 +861,11 @@ def s19_real_wp_rocket():
         wait_status(cid2, ["active"])
         control = counters()
     finally:
-        wp("plugin", "deactivate", "wp-rocket", ok_codes=(0, 1))
+        if wp("plugin", "deactivate", "wp-rocket", ok_codes=(0, 1, 199, 255)).returncode not in (0, 1):
+            # The plugin itself breaks WordPress loading: deactivate it without loading it.
+            wp("--skip-plugins=wp-rocket", "plugin", "deactivate", "wp-rocket", ok_codes=(0, 1))
+            sh(DC + ["exec", "-T", "cli", "sh", "-c", "sed -i '/Added by WP Rocket/d' /var/www/html/wp-config.php; "
+                     "rm -f /var/www/html/wp-content/advanced-cache.php"])
         set_sim()
 
     check(after_end["dsd_sim_rocket_post"] == 0, f"WP Rocket purged per product during the campaign: {after_end}")
