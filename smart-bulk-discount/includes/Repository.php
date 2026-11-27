@@ -499,6 +499,65 @@ final class Repository {
 	}
 
 	/**
+	 * Items for a report export, keyset-paged by item ID (cost stays flat on any page),
+	 * with product/parent titles, SKUs and current prices (for items never backed up). Read-only.
+	 *
+	 * @param int    $campaign_id Campaign.
+	 * @param string $status      '' = all.
+	 * @param int    $after_id    Cursor (last item ID already read).
+	 * @param int    $limit       Rows.
+	 * @return object[]
+	 */
+	public function export_chunk( $campaign_id, $status, $after_id, $limit ) {
+		global $wpdb;
+		$t     = self::items_table();
+		$where = $wpdb->prepare( 'i.campaign_id = %d AND i.id > %d', (int) $campaign_id, (int) $after_id );
+		if ( '' !== (string) $status ) {
+			$where .= $wpdb->prepare( ' AND i.status = %s', (string) $status );
+		}
+		return (array) $wpdb->get_results( // phpcs:ignore
+			$wpdb->prepare(
+				"SELECT i.id, i.product_id, i.parent_id, i.status, i.orig_regular, i.orig_sale, i.new_sale, i.note,
+				p.post_title, pp.post_title AS parent_title,
+				(SELECT m.meta_value FROM {$wpdb->postmeta} m WHERE m.post_id = i.product_id AND m.meta_key = '_sku' LIMIT 1) AS sku,
+				(SELECT pm.meta_value FROM {$wpdb->postmeta} pm WHERE pm.post_id = i.parent_id AND pm.meta_key = '_sku' LIMIT 1) AS parent_sku,
+				(SELECT r.meta_value FROM {$wpdb->postmeta} r WHERE r.post_id = i.product_id AND r.meta_key = '_regular_price' LIMIT 1) AS cur_regular,
+				(SELECT s.meta_value FROM {$wpdb->postmeta} s WHERE s.post_id = i.product_id AND s.meta_key = '_sale_price' LIMIT 1) AS cur_sale
+				FROM {$t} i
+				LEFT JOIN {$wpdb->posts} p ON p.ID = i.product_id
+				LEFT JOIN {$wpdb->posts} pp ON pp.ID = i.parent_id
+				WHERE {$where} ORDER BY i.id ASC LIMIT %d", // phpcs:ignore
+				max( 1, (int) $limit )
+			)
+		);
+	}
+
+	/**
+	 * Variation attributes (meta_key attribute_* => value) for a list of variations.
+	 *
+	 * @param int[] $variation_ids IDs.
+	 * @return array<int, array<string, string>>
+	 */
+	public function variation_attributes( array $variation_ids ) {
+		global $wpdb;
+		$ids = TargetResolver::int_list( $variation_ids );
+		if ( empty( $ids ) ) {
+			return array();
+		}
+		$rows = $wpdb->get_results( // phpcs:ignore
+			$wpdb->prepare(
+				"SELECT post_id, meta_key, meta_value FROM {$wpdb->postmeta} WHERE post_id IN (" . implode( ',', $ids ) . ') AND meta_key LIKE %s', // phpcs:ignore
+				$wpdb->esc_like( 'attribute_' ) . '%'
+			)
+		);
+		$out = array();
+		foreach ( (array) $rows as $r ) {
+			$out[ (int) $r->post_id ][ (string) $r->meta_key ] = (string) $r->meta_value;
+		}
+		return $out;
+	}
+
+	/**
 	 * Products currently locked by a *live* campaign other than $campaign_id.
 	 *
 	 * @param int $product_id  Product.

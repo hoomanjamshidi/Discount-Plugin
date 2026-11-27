@@ -406,6 +406,24 @@ switch ( $cmd ) {
 		dsd_out( $out );
 		break;
 
+	case 'export_auth':
+		// Browser-equivalent login cookies + the export nonce, for HTTP tests of admin-post.php.
+		$uid   = (int) $args[1];
+		$exp   = time() + HOUR_IN_SECONDS;
+		$token = WP_Session_Tokens::get_instance( $uid )->create( $exp );
+		$auth  = wp_generate_auth_cookie( $uid, $exp, 'auth', $token );
+		$li    = wp_generate_auth_cookie( $uid, $exp, 'logged_in', $token );
+		$_COOKIE[ LOGGED_IN_COOKIE ] = $li;
+		wp_set_current_user( $uid );
+		dsd_out(
+			array(
+				'cookie' => AUTH_COOKIE . '=' . rawurlencode( $auth ) . '; ' . LOGGED_IN_COOKIE . '=' . rawurlencode( $li ),
+				'nonce'  => wp_create_nonce( 'dsd_export' ),
+				'url'    => admin_url( 'admin-post.php' ),
+			)
+		);
+		break;
+
 	default:
 		WP_CLI::error( 'Unknown probe command.' );
 }

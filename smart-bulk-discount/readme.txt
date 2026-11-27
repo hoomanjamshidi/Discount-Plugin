@@ -19,7 +19,8 @@ Bulk percent/fixed discounts on chosen products, categories or every in-stock pr
 * Guaranteed completeness: after writing, every price is re-read from the database and any mismatch is retried (up to 3 times); the campaign becomes "active" only when nothing is left pending.
 * Safe ending: original prices are backed up before the first write and restored exactly at the end. If an admin edited a product meanwhile, their price is kept. From the moment a campaign ends, the storefront and cart stop showing its price even before the last product is restored.
 * One campaign per product: overlapping campaigns never overwrite each other.
-* WP-CLI: `wp dsd list|create|campaign|run|watchdog|status`.
+* Campaign report as Excel (.xlsx, right-to-left) or PDF (print-ready page): product name, ID, parent ID, SKU, clickable product link, previous price, new price, discount amount and percent, status. Follows the list filter; still available after the campaign ends.
+* WP-CLI: `wp dsd list|create|campaign|run|watchdog|status|export`.
 
 == Installation ==
 
@@ -46,6 +47,9 @@ Stop the campaign first and wait until it shows "تمام شده". Deactivation 
 Nothing is lost: progress is stored per product. When the site comes back, the watchdog resumes the work; if the end time passed meanwhile, prices are restored.
 
 == Changelog ==
+
+= Unreleased =
+* Campaign report export: Excel (.xlsx) and PDF (print page), from the campaign's product list; `wp dsd export`.
 
 = 1.1.0 =
 * Resource governor rewritten: pacing between products, latency-based congestion detection, memory budget from real headroom, load average no longer blocks the job (fixes jobs stuck at start and 503 errors on shared hosts).

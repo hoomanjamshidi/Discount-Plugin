@@ -328,12 +328,11 @@ final class RestController {
 		$page = $this->repo->items_page( (int) $req['id'], (string) $req['status'], (int) $req['page'], (int) $req['per_page'] );
 		$out  = array();
 		foreach ( $page['items'] as $r ) {
-			$name  = $r->post_title ? $r->post_title : '#' . $r->product_id;
 			$out[] = array(
 				'id'           => (int) $r->id,
 				'product_id'   => (int) $r->product_id,
 				'parent_id'    => (int) $r->parent_id,
-				'name'         => $r->parent_id && $r->parent_title && false === strpos( (string) $name, (string) $r->parent_title ) ? $r->parent_title . ' — ' . $name : $name,
+				'name'         => Report::display_name( (string) $r->post_title, (string) $r->parent_title, (int) $r->product_id, (int) $r->parent_id ),
 				'status'       => $r->status,
 				'orig_regular' => $r->orig_regular,
 				'orig_sale'    => $r->orig_sale,

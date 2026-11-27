@@ -860,6 +860,184 @@ def s19_real_wp_rocket():
     return {"after_apply": after_apply, "after_end": after_end, "control_compat_off": control}
 
 
+def read_xlsx(path):
+    """Independent .xlsx reader (stdlib only): {sheet name: [[cell, …], …]}; a link cell is
+    (text, target). Cells are keyed by their reference, so gaps stay where they are."""
+    import zipfile
+    import xml.etree.ElementTree as ET
+    ns = {"s": "http://schemas.openxmlformats.org/spreadsheetml/2006/main",
+          "r": "http://schemas.openxmlformats.org/officeDocument/2006/relationships",
+          "p": "http://schemas.openxmlformats.org/package/2006/relationships"}
+    rid = "{%s}id" % ns["r"]
+    z = zipfile.ZipFile(path)
+    check(z.testzip() is None, "corrupt zip entry")
+    wb = ET.fromstring(z.read("xl/workbook.xml"))
+    out = {}
+    for i, sh_el in enumerate(wb.find("s:sheets", ns), start=1):
+        root = ET.fromstring(z.read(f"xl/worksheets/sheet{i}.xml"))
+        check(root.find("s:sheetViews/s:sheetView", ns).get("rightToLeft") == "1", "sheet is not right-to-left")
+        links = {}
+        rels_name = f"xl/worksheets/_rels/sheet{i}.xml.rels"
+        if rels_name in z.namelist():
+            targets = {r.get("Id"): r.get("Target") for r in ET.fromstring(z.read(rels_name)).findall("p:Relationship", ns)}
+            for h in root.iter("{%s}hyperlink" % ns["s"]):
+                links[h.get("ref")] = targets[h.get(rid)]
+        rows = []
+        for row in root.find("s:sheetData", ns):
+            cells = {}
+            for c in row:
+                ref = c.get("r")
+                col = 0
+                for ch in re.match(r"[A-Z]+", ref).group(0):
+                    col = col * 26 + ord(ch) - 64
+                if c.get("t") == "inlineStr":
+                    val = "".join(t.text or "" for t in c.iter("{%s}t" % ns["s"]))
+                else:
+                    v = c.find("s:v", ns)
+                    val = float(v.text) if v is not None else None
+                cells[col - 1] = (val, links[ref]) if ref in links else val
+            rows.append([cells.get(k) for k in range(max(cells) + 1)] if cells else [])
+        out[sh_el.get("name")] = rows
+    return out
+
+
+def admin_get(url, cookie):
+    req = urllib.request.Request(url, headers={"Cookie": cookie})
+    try:
+        with urllib.request.urlopen(req, timeout=120) as r:
+            return r.status, dict(r.headers), r.read()
+    except urllib.error.HTTPError as e:
+        return e.code, dict(e.headers), e.read()
+
+
+@scenario
+def s20_campaign_report_export():
+    """Excel + PDF report of a campaign: every item once, previous/new prices equal the real
+    DB prices, links open the right product, filters, security (nonce, capability), host limits."""
+    restore()
+    ids = probe("pick", 40, "simple") + probe("pick", 10, "variable")
+    own_sale = ids[:2]  # these keep their own sale ("keep" policy): skipped, previous sale shown.
+    for pid in own_sale:
+        regular = float(probe("view_price", pid)["regular"])
+        probe("set_sale", pid, int(regular * 0.9))
+    snap = snapshot("s20")
+    cid = probe("create", json.dumps({"name": "گزارش «تست» & یلدا", "discount_type": "percent", "discount_value": 25,
+                                      "target_type": "products", "target": {"product_ids": ids},
+                                      "options": {"sale_policy": "keep"}, "start": True}))["id"]
+    wait_status(cid, ["active"])
+    after = snapshot("s20-after")
+    counts = probe("status", cid)["counts"]
+    with open(os.path.join(OUT_HOST, "s20.json"), encoding="utf-8") as f:
+        before_rows = json.load(f)
+    with open(os.path.join(OUT_HOST, "s20-after.json"), encoding="utf-8") as f:
+        after_rows = json.load(f)
+
+    # 1) CLI export under shared-host limits.
+    t0 = time.time()
+    p = wp("dsd", "export", str(cid), f"--file={OUT_CLI}/s20.xlsx", mem="128M", exec_time="30")
+    cli_secs = round(time.time() - t0, 1)
+    check("Success" in p.stdout, f"export failed: {p.stdout} {p.stderr}")
+    book = read_xlsx(os.path.join(OUT_HOST, "s20.xlsx"))
+    check(list(book) == ["محصولات", "خلاصه"], f"sheets: {list(book)}")
+    head, *rows = book["محصولات"]
+    check(head[1] == "شناسهٔ محصول" and head[3] == "نام محصول" and head[5] == "لینک محصول", f"header: {head}")
+    check(len(rows) == counts["total"], f"{len(rows)} rows for {counts['total']} items")
+    seen = [int(r[1]) for r in rows]
+    check(len(set(seen)) == len(seen), "a product appears twice")
+
+    applied = variations = 0
+    for r in rows:
+        pid = str(int(r[1]))
+        b, a = before_rows[pid]["meta"], after_rows[pid]["meta"]
+        parent = before_rows[pid]["parent"]
+        check((int(r[2]) if r[2] else 0) == parent, f"{pid}: parent {r[2]} != {parent}")
+        variations += 1 if parent else 0
+        # Previous price: the original (applied rows: the backup; untouched rows: unchanged price).
+        regular = float(b["_regular_price"]) if b.get("_regular_price") else None
+        check(r[6] == regular, f"{pid}: previous price {r[6]} != original regular {regular}")
+        old = float(b["_sale_price"]) if b.get("_sale_price") else None
+        old = old if old and regular and 0 < old < regular else None
+        check(r[7] == old, f"{pid}: previous sale {r[7]} != {old}")
+        status = r[11]
+        if status == "اعمال شد":
+            applied += 1
+            new = float(a["_sale_price"])
+            check(r[8] == new, f"{pid}: new price {r[8]} != price in DB {new}")
+            check(abs(r[9] - (regular - new)) < 0.01, f"{pid}: discount amount {r[9]}")
+            check(abs(r[10] - round((regular - new) / regular, 4)) < 0.0001, f"{pid}: discount percent {r[10]}")
+            check(isinstance(r[5], tuple) and r[5][1].startswith(SITE), f"{pid}: link missing: {r[5]}")
+            if parent:
+                check("attribute_" in r[5][1], f"{pid}: variation link has no attributes: {r[5]}")
+        else:
+            check(r[8] is None and r[10] is None, f"{pid}: {status} row shows a new price {r[8]}")
+            check(a.get("_sale_price", "") == b.get("_sale_price", ""), f"{pid}: untouched row but the price changed")
+    check(applied == counts["applied"], f"{applied} applied rows, campaign says {counts['applied']}")
+    for pid in own_sale:
+        r = next(r for r in rows if int(r[1]) == pid)
+        check(r[11] == "رد شد" and r[12] == "تخفیف خودش را دارد" and r[7], f"own-sale product {pid}: {r}")
+    check(variations > 0, "no variations in the report")
+
+    # Links really open the product (variation links: the parent page with its attributes).
+    sample = [r for r in rows if isinstance(r[5], tuple)]
+    sample = [r for r in sample if not r[2]][:3] + [r for r in sample if r[2]][:3]
+    for r in sample:
+        page_id = int(r[2]) if r[2] else int(r[1])
+        with urllib.request.urlopen(r[5][1], timeout=60) as resp:
+            html = resp.read().decode("utf-8", "replace")
+        check(f"postid-{page_id}" in html, f"link {r[5][1]} did not open product {page_id}")
+
+    summary = dict((row[0], row[1]) for row in book["خلاصه"])
+    check(summary.get("نام کمپین") == "گزارش «تست» & یلدا", f"summary name: {summary.get('نام کمپین')}")
+    check(summary.get("تخفیف") == "۲۵٪", f"summary discount: {summary.get('تخفیف')}")
+
+    # 2) The real download path: wp-admin/admin-post.php with a logged-in admin's cookies.
+    auth = probe("export_auth", 1)
+    base = f"{auth['url']}?action=dsd_export&id={cid}"
+    code, hdr, body = admin_get(f"{base}&format=xlsx&_wpnonce={auth['nonce']}", auth["cookie"])
+    check(code == 200, f"xlsx download HTTP {code}: {body[:300]}")
+    check(hdr.get("Content-Type", "").startswith("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"), f"type {hdr.get('Content-Type')}")
+    check("filename*=UTF-8''" in hdr.get("Content-Disposition", ""), f"disposition {hdr.get('Content-Disposition')}")
+    check(int(hdr.get("Content-Length", -1)) == len(body), "Content-Length mismatch")
+    web_path = os.path.join(OUT_HOST, "s20-web.xlsx")
+    with open(web_path, "wb") as f:
+        f.write(body)
+    web = read_xlsx(web_path)
+    check(web["محصولات"] == book["محصولات"], "web download differs from the CLI export")
+
+    code, _, body = admin_get(f"{base}&format=xlsx&status=applied&_wpnonce={auth['nonce']}", auth["cookie"])
+    with open(web_path, "wb") as f:
+        f.write(body)
+    only = read_xlsx(web_path)["محصولات"][1:]
+    check(code == 200 and len(only) == counts["applied"] and all(r[11] == "اعمال شد" for r in only), "status filter")
+
+    code, hdr, body = admin_get(f"{base}&format=pdf&_wpnonce={auth['nonce']}", auth["cookie"])
+    html = body.decode("utf-8")
+    check(code == 200 and hdr.get("Content-Type", "").startswith("text/html"), f"pdf page HTTP {code}")
+    body_rows = html.split("<tbody>", 1)[1].split("</tbody>", 1)[0].count("<tr>")
+    check(body_rows == counts["total"], f"print page has {body_rows} rows for {counts['total']} items")
+    check('dir="rtl"' in html and "window.print" in html, "print page shell")
+    check("<h1>گزارش «تست» &amp; یلدا</h1>" in html, "campaign name not escaped once in the print page")
+
+    code, _, _ = admin_get(f"{base}&format=xlsx&_wpnonce=bad", auth["cookie"])
+    check(code == 403, f"bad nonce gave HTTP {code}")
+    code, _, _ = admin_get(f"{base}&format=xlsx&_wpnonce={auth['nonce']}", "")
+    check(code != 200, f"anonymous request gave HTTP {code}")
+    wp("user", "create", "shopper", "shopper@example.test", "--role=customer", "--porcelain", ok_codes=(0, 1))
+    uid = int(wp("user", "get", "shopper", "--field=ID").stdout.strip())
+    weak = probe("export_auth", uid)
+    code, _, _ = admin_get(f"{auth['url']}?action=dsd_export&id={cid}&format=xlsx&_wpnonce={weak['nonce']}", weak["cookie"])
+    check(code == 403, f"customer could download the report (HTTP {code})")
+
+    probe("cmd", "stop", cid)
+    wait_status(cid, ["ended"])
+    assert_restored(snap)
+    # After the end the report still lists the campaign's prices (rows now say "برگشت").
+    wp("dsd", "export", str(cid), f"--file={OUT_CLI}/s20-ended.xlsx", mem="128M", exec_time="30")
+    ended = read_xlsx(os.path.join(OUT_HOST, "s20-ended.xlsx"))["محصولات"][1:]
+    check(sum(1 for r in ended if r[11] == "برگشت" and r[8]) == counts["applied"], "ended report lost the campaign prices")
+    return {"items": counts["total"], "applied": applied, "variations": variations, "cli_export_secs": cli_secs}
+
+
 # ----------------------------------------------------------------------------- main
 
 def main():

@@ -80,6 +80,8 @@ final class AdminPage {
 			'productsUrl' => admin_url( 'edit.php?post_type=product' ),
 			'version'     => DSD_VERSION,
 			'fontUrl'     => DSD_URL . 'build/fonts/',
+			'exportUrl'   => admin_url( 'admin-post.php' ),
+			'exportNonce' => wp_create_nonce( Export::NONCE ),
 		);
 		wp_add_inline_script( 'dsd-admin', 'window.DSD_BOOT = ' . wp_json_encode( $boot ) . ';', 'before' );
 	}

@@ -223,4 +223,53 @@ final class Cli {
 		$data['stats'] = $this->repo->counts( $c->id );
 		\WP_CLI::line( wp_json_encode( $data, JSON_PRETTY_PRINT | JSON_UNESCAPED_UNICODE ) );
 	}
+
+	/**
+	 * Save a campaign report: product, ID, link, previous and new price.
+	 *
+	 * ## OPTIONS
+	 *
+	 * <id>
+	 * : Campaign ID.
+	 *
+	 * --file=<path>
+	 * : Where to write the report.
+	 *
+	 * [--format=<format>]
+	 * : xlsx (Excel) or html (the print page used for PDF). Default xlsx.
+	 *
+	 * [--status=<status>]
+	 * : Only items in this status (applied, skipped, failed, reverted, kept, cancelled, pending).
+	 *
+	 * @param array $args  Args.
+	 * @param array $assoc Assoc.
+	 */
+	public function export( $args, $assoc ) {
+		$c = $this->repo->find( (int) $args[0] );
+		if ( ! $c ) {
+			\WP_CLI::error( 'Not found.' );
+		}
+		$format = isset( $assoc['format'] ) ? (string) $assoc['format'] : 'xlsx';
+		$status = isset( $assoc['status'] ) ? (string) $assoc['status'] : '';
+		if ( ! in_array( $status, Report::STATUSES, true ) ) {
+			\WP_CLI::error( 'Unknown status.' );
+		}
+		$export = new Export( $this->repo );
+		if ( 'xlsx' === $format ) {
+			$fh = fopen( (string) $assoc['file'], 'wb' ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+			if ( ! $fh ) {
+				\WP_CLI::error( 'Cannot write ' . $assoc['file'] );
+			}
+			$n = $export->write_xlsx( $c, $status, $fh );
+			fclose( $fh ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+		} elseif ( 'html' === $format ) {
+			ob_start();
+			$n = $export->render_print( $c, $status );
+			file_put_contents( (string) $assoc['file'], ob_get_clean() ); // phpcs:ignore WordPress.WP.AlternativeFunctions
+		} else {
+			\WP_CLI::error( 'Format must be xlsx or html.' );
+			return;
+		}
+		\WP_CLI::success( sprintf( '%d rows written to %s', $n, $assoc['file'] ) );
+	}
 }
