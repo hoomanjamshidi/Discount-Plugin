@@ -22,4 +22,7 @@ require_once $dir . 'Environment.php';
 require_once $dir . 'ResourceGovernor.php';
 require_once $dir . 'Clock.php';
 require_once $dir . 'CacheCompat.php';
+require_once $dir . 'Zip.php';
+require_once $dir . 'Xlsx.php';
+require_once $dir . 'Report.php';
 require_once __DIR__ . '/FakeEnvironment.php';

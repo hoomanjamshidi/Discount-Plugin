@@ -77,6 +77,7 @@ final class Plugin {
 
 		if ( is_admin() ) {
 			( new AdminPage() )->register();
+			( new Export( $this->repo ) )->register();
 		}
 
 		if ( defined( 'WP_CLI' ) && WP_CLI ) {
@@ -87,6 +88,7 @@ final class Plugin {
 			\WP_CLI::add_command( 'dsd run', array( $cli, 'run' ) );
 			\WP_CLI::add_command( 'dsd watchdog', array( $cli, 'watchdog' ) );
 			\WP_CLI::add_command( 'dsd status', array( $cli, 'status' ) );
+			\WP_CLI::add_command( 'dsd export', array( $cli, 'export' ) );
 		}
 	}
 

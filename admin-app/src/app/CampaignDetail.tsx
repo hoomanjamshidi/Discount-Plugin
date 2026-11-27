@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { ArrowRight01Icon, PauseIcon, PlayIcon, StopIcon, Copy01Icon, Edit02Icon, RefreshIcon, LinkSquare02Icon, InformationCircleIcon } from "@hugeicons/core-free-icons";
+import { ArrowRight01Icon, PauseIcon, PlayIcon, StopIcon, Copy01Icon, Edit02Icon, RefreshIcon, LinkSquare02Icon, InformationCircleIcon, Xls02Icon, Pdf02Icon } from "@hugeicons/core-free-icons";
+import type { IconSvgElement } from "@hugeicons/react";
 import { usePoll } from "@/lib/poll";
-import { api } from "@/lib/api";
+import { api, exportUrl } from "@/lib/api";
 import type { Campaign, Item, Worker } from "@/lib/types";
 import { WORKING } from "@/lib/types";
 import { ITEM_STATUS, LOG, REPEAT, STATUS, discountText, noteLabel, targetText } from "@/lib/labels";
@@ -16,6 +17,7 @@ import { Badge, Btn, Card, ProgressBar, Segmented, Skeleton } from "./ui";
 import { campaignProgress, markStatus } from "./progress";
 import { useToast } from "./Toaster";
 import { cn } from "@/lib/utils";
+import { SoftTooltip } from "@/components/tooltip";
 
 type Detail = Campaign & { worker: Worker };
 
@@ -215,7 +217,11 @@ function Items({ id, total, refreshKey }: { id: number; total: number; refreshKe
   return (
     <Card className="p-0">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
-        <p className="m-0 font-bold">محصولات کمپین</p>
+        <div className="flex flex-wrap items-center gap-2">
+          <p className="m-0 me-1 font-bold">محصولات کمپین</p>
+          <ExportLink href={exportUrl(id, "xlsx", status)} icon={Xls02Icon} label="اکسل" hint="دانلود فایل اکسل همین فهرست: نام، شناسه، لینک، قیمت قبلی و قیمت جدید هر محصول" disabled={!total} />
+          <ExportLink href={exportUrl(id, "pdf", status)} icon={Pdf02Icon} label="PDF" hint="نسخهٔ آمادهٔ چاپ در زبانهٔ تازه باز می‌شود؛ در پنجرهٔ چاپ «Save as PDF» را بزنید" disabled={!total} newTab />
+        </div>
         <Segmented value={status as (typeof FILTERS)[number]["value"]} onChange={(v) => setStatus(v)} options={FILTERS.map((f) => ({ ...f }))} />
       </div>
       {total === 0 && !data?.items.length ? (
@@ -273,6 +279,27 @@ function Items({ id, total, refreshKey }: { id: number; total: number; refreshKe
         </div>
       ) : null}
     </Card>
+  );
+}
+
+/** A download link that looks like a small button. Exports follow the list's current filter. */
+function ExportLink({ href, icon, label, hint, disabled, newTab }: { href: string; icon: IconSvgElement; label: string; hint: string; disabled?: boolean; newTab?: boolean }) {
+  const cls = "inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-[13px] font-medium text-foreground no-underline outline-none transition-colors hover:bg-accent hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring";
+  if (disabled) {
+    return (
+      <span aria-disabled="true" className={cn(cls, "pointer-events-none opacity-45")}>
+        <HugeiconsIcon icon={icon} size={16} />
+        {label}
+      </span>
+    );
+  }
+  return (
+    <SoftTooltip label={hint} side="top">
+      <a href={href} className={cls} aria-label={`${label} — ${hint}`} {...(newTab ? { target: "_blank", rel: "noopener" } : {})}>
+        <HugeiconsIcon icon={icon} size={16} />
+        {label}
+      </a>
+    </SoftTooltip>
   );
 }
 

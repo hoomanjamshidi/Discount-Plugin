@@ -10,6 +10,9 @@ export interface Boot {
   nowLocal: string;
   productsUrl: string;
   version: string;
+  /** wp-admin/admin-post.php (report downloads). */
+  exportUrl?: string;
+  exportNonce?: string;
 }
 
 declare global {
@@ -29,6 +32,17 @@ export const boot: Boot = window.DSD_BOOT ?? {
   productsUrl: "#",
   version: "dev",
 };
+
+/** Download link for a campaign report (Excel file, or the print page that saves as PDF). */
+export function exportUrl(id: number, format: "xlsx" | "pdf", status = ""): string {
+  const url = new URL(boot.exportUrl || "/wp-admin/admin-post.php", window.location.origin);
+  url.searchParams.set("action", "dsd_export");
+  url.searchParams.set("id", String(id));
+  url.searchParams.set("format", format);
+  if (status) url.searchParams.set("status", status);
+  url.searchParams.set("_wpnonce", boot.exportNonce ?? "");
+  return url.toString();
+}
 
 export class ApiError extends Error {
   code: string;
