@@ -15,6 +15,7 @@
  *   jalali_dates   wp_date()/date_i18n() return Persian digits (like WP-Parsidate / wp-jalali)
  *   fake_cache     a page-cache plugin like WP Rocket/LiteSpeed: counts per-post purges and full purges
  *   count_rocket   count real WP Rocket purges (per post / whole domain)
+ *   regular_from_price  a buggy price-sync plugin: copies the selling price into the regular price on save
  *
  * @package SmartBulkDiscount\Tests
  */
@@ -118,3 +119,28 @@ $dsd_sim_on_save = static function ( $product_id ) use ( $dsd_sim ) {
 };
 add_action( 'woocommerce_update_product', $dsd_sim_on_save, 10, 1 );
 add_action( 'woocommerce_update_product_variation', $dsd_sim_on_save, 10, 1 );
+
+// A price-sync plugin with a common mistake (accounting/warehouse sync): on every product save it
+// stores the CURRENT SELLING price (get_price) as the regular price. During a campaign that is our
+// discounted price, which is exactly the "regular price became the discount" report. Used to prove
+// that the tests and docs/diagnose-regular-price.sql catch it (the plugin itself never does this).
+if ( ! empty( $dsd_sim['regular_from_price'] ) ) {
+	$dsd_sim_regular_from_price = static function ( $product_id, $product = null ) {
+		static $busy = false;
+		if ( $busy ) {
+			return;
+		}
+		$product = $product instanceof WC_Product ? $product : wc_get_product( $product_id );
+		if ( ! $product || $product->is_type( array( 'variable', 'grouped' ) ) ) {
+			return;
+		}
+		$busy  = true;
+		$price = $product->get_price();
+		if ( '' !== (string) $price ) {
+			update_post_meta( $product->get_id(), '_regular_price', $price );
+		}
+		$busy = false;
+	};
+	add_action( 'woocommerce_update_product', $dsd_sim_regular_from_price, 50, 2 );
+	add_action( 'woocommerce_update_product_variation', $dsd_sim_regular_from_price, 50, 2 );
+}

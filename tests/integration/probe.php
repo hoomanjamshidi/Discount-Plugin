@@ -16,6 +16,12 @@
  *   view_price <product_id>         Storefront (view-context) price + on_sale.
  *   set_sale <product_id> <price>   Simulate an admin editing a product.
  *   pick <n> [type]                 Pick n published product IDs (simple|variable).
+ *   pick_own_sale <n>               In-stock simple products that already have their own sale price.
+ *   full_edit|quick_edit <id>       Admin presses "Update" on the edit screen / in Quick Edit, unchanged.
+ *   rest_roundtrip <id>             An external app reads the product via /wc/v3 and writes the prices back.
+ *   price_html <id,id>              What the storefront shows (price HTML as text).
+ *   permalinks <id,id>              Shop links.
+ *   diagnose <sql file>             Run docs/diagnose-regular-price.sql.
  *
  * @package SmartBulkDiscount\Tests
  */
@@ -29,6 +35,26 @@ $cmd = isset( $args[0] ) ? $args[0] : '';
 
 function dsd_out( $data ) {
 	WP_CLI::line( wp_json_encode( $data, JSON_UNESCAPED_UNICODE ) );
+}
+
+/** Product straight from the database (no stale object/product cache). */
+function dsd_fresh( $id ) {
+	clean_post_cache( $id );
+	wp_cache_delete( $id, 'post_meta' );
+	return wc_get_product( $id );
+}
+
+/**
+ * Read a snapshot written by `snapshot`. A missing or empty snapshot is a hard error: comparing
+ * against nothing would make every check pass silently.
+ */
+function dsd_load_snapshot( $file ) {
+	$raw  = is_readable( $file ) ? file_get_contents( $file ) : false;
+	$rows = false === $raw ? null : json_decode( $raw, true );
+	if ( ! is_array( $rows ) || count( $rows ) < 1 ) {
+		WP_CLI::error( "Snapshot {$file} is missing or empty." );
+	}
+	return $rows;
 }
 
 function dsd_all_rows() {
@@ -167,7 +193,9 @@ $plugin = Plugin::instance();
 switch ( $cmd ) {
 	case 'snapshot':
 		$rows = dsd_all_rows();
-		file_put_contents( $args[1], wp_json_encode( $rows ) );
+		if ( false === @file_put_contents( $args[1], wp_json_encode( $rows ) ) || filesize( $args[1] ) < 10 ) { // phpcs:ignore
+			WP_CLI::error( "Could not write snapshot {$args[1]} (folder not writable by the web user?)." );
+		}
 		dsd_out( array( 'saved' => count( $rows ) ) );
 		break;
 
@@ -203,7 +231,7 @@ switch ( $cmd ) {
 			break;
 		}
 		$def    = $c->to_api();
-		$before = json_decode( file_get_contents( $args[2] ), true );
+		$before = dsd_load_snapshot( $args[2] );
 		$now    = dsd_all_rows();
 		$report = array(
 			'eligible'          => 0,
@@ -293,7 +321,7 @@ switch ( $cmd ) {
 		break;
 
 	case 'check_restored':
-		$before = json_decode( file_get_contents( $args[1] ), true );
+		$before = dsd_load_snapshot( $args[1] );
 		$now    = dsd_all_rows();
 		$diff   = array();
 		$n      = 0;
@@ -351,6 +379,121 @@ switch ( $cmd ) {
 		$p->set_sale_price( $args[2] );
 		$p->save();
 		dsd_out( array( 'ok' => true ) );
+		break;
+
+	case 'full_edit':
+		// Admin presses "Update" on the product edit screen without changing anything. The
+		// screen renders prices with 'edit' context (html-product-data-general.php).
+		$id   = (int) $args[1];
+		$p    = dsd_fresh( $id );
+		$from = $p->get_date_on_sale_from( 'edit' );
+		$to   = $p->get_date_on_sale_to( 'edit' );
+		wp_set_current_user( 1 );
+		$_POST    = array(
+			'_regular_price'         => $p->get_regular_price( 'edit' ),
+			'_sale_price'            => $p->get_sale_price( 'edit' ),
+			'_sale_price_dates_from' => $from ? $from->date( 'Y-m-d' ) : '',
+			'_sale_price_dates_to'   => $to ? $to->date( 'Y-m-d' ) : '',
+			'_stock_status'          => $p->get_stock_status( 'edit' ),
+			'_tax_status'            => $p->get_tax_status( 'edit' ),
+			'_tax_class'             => $p->get_tax_class( 'edit' ),
+			'_sku'                   => $p->get_sku( 'edit' ),
+			'_backorders'            => $p->get_backorders( 'edit' ),
+			'_visibility'            => $p->get_catalog_visibility( 'edit' ),
+			'product-type'           => $p->get_type(),
+		);
+		$_REQUEST = $_POST;
+		WC_Meta_Box_Product_Data::save( $id, get_post( $id ) );
+		$_POST    = array();
+		$_REQUEST = array();
+		dsd_out( array( 'ok' => true ) );
+		break;
+
+	case 'quick_edit':
+		// Quick Edit fills its form from hidden inline data rendered with VIEW-context getters
+		// (class-wc-admin-list-table-products.php), i.e. what PriceGuard lets the storefront see.
+		$id = (int) $args[1];
+		PriceGuard::flush();
+		$p = dsd_fresh( $id );
+		wp_set_current_user( 1 );
+		$data     = array(
+			'woocommerce_quick_edit'       => '1',
+			'woocommerce_quick_edit_nonce' => wp_create_nonce( 'woocommerce_quick_edit_nonce' ),
+			'_regular_price'               => (string) $p->get_regular_price(),
+			'_sale_price'                  => (string) $p->get_sale_price(),
+			'_sale_price_dates_from'       => '',
+			'_sale_price_dates_to'         => '',
+			'_stock_status'                => $p->get_stock_status(),
+			'_tax_status'                  => $p->get_tax_status(),
+			'_visibility'                  => $p->get_catalog_visibility(),
+			'_sku'                         => $p->get_sku(),
+		);
+		$_POST    = $data;
+		$_REQUEST = $data;
+		wp_update_post( array( 'ID' => $id ) ); // save_post → WooCommerce quick edit save.
+		$_POST    = array();
+		$_REQUEST = array();
+		dsd_out( array( 'ok' => true, 'regular' => $data['_regular_price'], 'sale' => $data['_sale_price'] ) );
+		break;
+
+	case 'rest_roundtrip':
+		// An external app reads the product through /wc/v3 and writes the same prices back.
+		$id = (int) $args[1];
+		PriceGuard::flush();
+		wp_set_current_user( 1 );
+		$post  = get_post( $id );
+		$route = 'product_variation' === $post->post_type ? "/wc/v3/products/{$post->post_parent}/variations/{$id}" : "/wc/v3/products/{$id}";
+		$got   = rest_do_request( new WP_REST_Request( 'GET', $route ) )->get_data();
+		$put   = new WP_REST_Request( 'PUT', $route );
+		$put->set_body_params( array( 'regular_price' => $got['regular_price'], 'sale_price' => $got['sale_price'] ) );
+		dsd_out( array( 'status' => rest_do_request( $put )->get_status(), 'price' => $got['price'] ) );
+		break;
+
+	case 'price_html':
+		PriceGuard::flush();
+		$out = array();
+		foreach ( array_map( 'intval', explode( ',', $args[1] ) ) as $id ) {
+			$out[ $id ] = trim( preg_replace( '/\s+/', ' ', wp_strip_all_tags( html_entity_decode( dsd_fresh( $id )->get_price_html() ) ) ) );
+		}
+		dsd_out( $out );
+		break;
+
+	case 'permalinks':
+		$out = array();
+		foreach ( array_map( 'intval', explode( ',', $args[1] ) ) as $id ) {
+			$out[ $id ] = (string) get_permalink( $id );
+		}
+		dsd_out( $out );
+		break;
+
+	case 'pick_own_sale':
+		// In-stock simple products that already have their own (undated) sale price.
+		global $wpdb;
+		$ids = $wpdb->get_col(
+			$wpdb->prepare(
+				"SELECT p.ID FROM {$wpdb->posts} p
+				 JOIN {$wpdb->term_relationships} tr ON tr.object_id = p.ID
+				 JOIN {$wpdb->term_taxonomy} tt ON tt.term_taxonomy_id = tr.term_taxonomy_id AND tt.taxonomy = 'product_type'
+				 JOIN {$wpdb->terms} t ON t.term_id = tt.term_id AND t.slug = 'simple'
+				 JOIN {$wpdb->postmeta} s ON s.post_id = p.ID AND s.meta_key = '_stock_status' AND s.meta_value = 'instock'
+				 JOIN {$wpdb->postmeta} sp ON sp.post_id = p.ID AND sp.meta_key = '_sale_price' AND sp.meta_value <> ''
+				 LEFT JOIN {$wpdb->postmeta} df ON df.post_id = p.ID AND df.meta_key = '_sale_price_dates_from'
+				 WHERE p.post_type = 'product' AND p.post_status = 'publish' AND ( df.meta_value IS NULL OR df.meta_value = '' )
+				 ORDER BY p.ID LIMIT %d",
+				(int) $args[1]
+			)
+		);
+		dsd_out( array_map( 'intval', $ids ) );
+		break;
+
+	case 'diagnose':
+		// Runs docs/diagnose-regular-price.sql exactly as a shop owner would (table prefix adapted).
+		global $wpdb;
+		$sql  = file_get_contents( $args[1] );
+		$sql  = preg_replace( '/^\s*--.*$/m', '', $sql );
+		$sql  = str_replace( 'wp_', $wpdb->prefix, trim( rtrim( trim( $sql ), ';' ) ) );
+		$rows = $wpdb->get_results( $sql, ARRAY_A );
+		dsd_out( array( 'error' => $wpdb->last_error, 'rows' => $rows ) );
 		break;
 
 	case 'pick':

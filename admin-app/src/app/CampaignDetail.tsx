@@ -16,6 +16,7 @@ import { Badge, Btn, Card, ProgressBar, Segmented, Skeleton } from "./ui";
 import { campaignProgress, markStatus } from "./progress";
 import { useToast } from "./Toaster";
 import { cn } from "@/lib/utils";
+import { buildWorkbook, downloadBytes, fetchReport, fileName, printReport } from "@/lib/report";
 
 type Detail = Campaign & { worker: Worker };
 
@@ -145,7 +146,7 @@ export function CampaignDetail({ id, onBack, onEdit, onChanged }: { id: number; 
       </Card>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_320px]">
-        <Items id={id} total={c.stats.total} refreshKey={c.updated_at} />
+        <Items id={id} campaign={c} refreshKey={c.updated_at} />
         <Timeline c={c} />
       </div>
     </div>
@@ -200,7 +201,40 @@ const FILTERS = [
   { value: "reverted", label: "برگشته" },
 ] as const;
 
-function Items({ id, total, refreshKey }: { id: number; total: number; refreshKey: number }) {
+/** Excel / PDF report of every product in the campaign (name, ID, link, price before, campaign price). */
+function ReportExport({ c }: { c: Campaign }) {
+  const toast = useToast();
+  const [progress, setProgress] = useState("");
+  const empty = !c.stats.total;
+
+  const run = async (kind: "xlsx" | "pdf") => {
+    try {
+      const lines = await fetchReport(c.id, (done, total) => setProgress(total > 500 ? `${fa(Math.min(100, Math.round((done / total) * 100)))}٪` : ""));
+      if (kind === "xlsx") {
+        downloadBytes(buildWorkbook(c, lines), fileName(c, "xlsx"), "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        toast("success", "فایل اکسل دانلود شد", `${num(lines.length)} محصول در گزارش است.`);
+      } else {
+        await printReport(c, lines);
+        toast("success", "گزارش برای PDF آماده شد", "در پنجرهٔ چاپ، مقصد را «Save as PDF» (ذخیره به‌صورت PDF) بگذارید.");
+      }
+    } catch (e) {
+      toast("error", "گزارش آماده نشد", (e as Error).message);
+      throw e;
+    } finally {
+      setProgress("");
+    }
+  };
+
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <SaveButton variant="soft" className="[&_button]:h-9 [&_button]:min-w-[118px] [&_button]:px-4 [&_button]:text-[13px]" label="خروجی اکسل" loadingLabel={progress ? `آماده‌سازی ${progress}` : "آماده‌سازی…"} doneLabel="دانلود شد" disabled={empty} onClick={() => run("xlsx")} />
+      <SaveButton variant="soft" className="[&_button]:h-9 [&_button]:min-w-[118px] [&_button]:px-4 [&_button]:text-[13px]" label="خروجی PDF" loadingLabel={progress ? `آماده‌سازی ${progress}` : "آماده‌سازی…"} doneLabel="آماده شد" disabled={empty} onClick={() => run("pdf")} />
+    </div>
+  );
+}
+
+function Items({ id, campaign, refreshKey }: { id: number; campaign: Campaign; refreshKey: number }) {
+  const total = campaign.stats.total;
   const [status, setStatus] = useState<string>("");
   const [page, setPage] = useState(1);
   const [data, setData] = useState<{ items: Item[]; total: number } | null>(null);
@@ -215,7 +249,10 @@ function Items({ id, total, refreshKey }: { id: number; total: number; refreshKe
   return (
     <Card className="p-0">
       <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border p-4">
-        <p className="m-0 font-bold">محصولات کمپین</p>
+        <div className="flex flex-wrap items-center gap-3">
+          <p className="m-0 font-bold">محصولات کمپین</p>
+          <ReportExport c={campaign} />
+        </div>
         <Segmented value={status as (typeof FILTERS)[number]["value"]} onChange={(v) => setStatus(v)} options={FILTERS.map((f) => ({ ...f }))} />
       </div>
       {total === 0 && !data?.items.length ? (

@@ -2,7 +2,7 @@
 /**
  * Plugin Name:       Smart Bulk Discount — تخفیف گروهی هوشمند
  * Description:       تخفیف درصدی یا مبلغی روی محصولات منتخب، دسته‌بندی‌ها یا همهٔ محصولات موجود، با زمان‌بندی شمسی و اجرای آرام در پس‌زمینه بر اساس منابع هاست.
- * Version:           1.1.0
+ * Version:           1.2.0
  * Requires at least: 6.0
  * Requires PHP:      7.4
  * Requires Plugins:  woocommerce
@@ -32,7 +32,7 @@ if ( defined( 'DSD_FILE' ) ) {
 	return;
 }
 
-define( 'DSD_VERSION', '1.1.0' );
+define( 'DSD_VERSION', '1.2.0' );
 define( 'DSD_DB_VERSION', 1 );
 define( 'DSD_FILE', __FILE__ );
 define( 'DSD_DIR', plugin_dir_path( __FILE__ ) );

@@ -16,6 +16,9 @@ final class RestController {
 
 	const NS = 'dsd/v1';
 
+	/** Largest report page: a few cheap queries, well inside any host's time limit. */
+	const REPORT_PAGE = 500;
+
 	/** @var CampaignService */
 	private $service;
 	/** @var Repository */
@@ -133,6 +136,32 @@ final class RestController {
 							'default' => 50,
 							'minimum' => 1,
 							'maximum' => 200,
+						),
+					)
+				),
+			)
+		);
+		register_rest_route(
+			self::NS,
+			'/campaigns/(?P<id>\d+)/report',
+			array(
+				'methods'             => \WP_REST_Server::READABLE,
+				'callback'            => array( $this, 'report' ),
+				'permission_callback' => $perm,
+				'args'                => array_merge(
+					$id,
+					array(
+						'after'    => array(
+							'type'              => 'integer',
+							'default'           => 0,
+							'minimum'           => 0,
+							'sanitize_callback' => 'absint',
+						),
+						'per_page' => array(
+							'type'    => 'integer',
+							'default' => 500,
+							'minimum' => 1,
+							'maximum' => self::REPORT_PAGE,
 						),
 					)
 				),
@@ -344,6 +373,68 @@ final class RestController {
 		}
 		$res = rest_ensure_response( array( 'items' => $out, 'total' => $page['total'] ) );
 		return $res;
+	}
+
+	/**
+	 * GET /campaigns/{id}/report — one page of the campaign report (Excel / PDF export).
+	 *
+	 * Read-only and bounded (at most REPORT_PAGE rows, a handful of queries), so no governor
+	 * is needed; the admin app fetches the pages one after another and builds the file itself.
+	 * Prices are raw database values: the backup taken before our first write (orig_*), the
+	 * price we wrote (new_sale), and the product's price now (for rows never written).
+	 *
+	 * @param \WP_REST_Request $req Request.
+	 * @return \WP_REST_Response|\WP_Error
+	 */
+	public function report( \WP_REST_Request $req ) {
+		$id = (int) $req['id'];
+		if ( ! $this->repo->find( $id ) ) {
+			return new \WP_Error( 'dsd_not_found', CampaignService::message( 'not_found' ), array( 'status' => 404 ) );
+		}
+		$limit = min( self::REPORT_PAGE, max( 1, (int) $req['per_page'] ) );
+		$rows  = $this->repo->report_page( $id, (int) $req['after'], $limit );
+
+		// Shop links: a variation links to its parent product page.
+		$link_ids = array();
+		foreach ( $rows as $r ) {
+			$link_ids[] = $r->parent_id ? (int) $r->parent_id : (int) $r->product_id;
+		}
+		$link_ids = array_values( array_unique( $link_ids ) );
+		if ( $link_ids && function_exists( '_prime_post_caches' ) ) {
+			_prime_post_caches( $link_ids, true, false );
+		}
+
+		$out  = array();
+		$last = 0;
+		foreach ( $rows as $r ) {
+			$last  = (int) $r->id;
+			$name  = $r->post_title ? (string) $r->post_title : '#' . $r->product_id;
+			$owner = $r->parent_id ? (int) $r->parent_id : (int) $r->product_id;
+			$url   = get_permalink( $owner );
+			$out[] = array(
+				'product_id'   => (int) $r->product_id,
+				'parent_id'    => (int) $r->parent_id,
+				'name'         => html_entity_decode( $r->parent_id && $r->parent_title && false === strpos( $name, (string) $r->parent_title ) ? $r->parent_title . ' — ' . $name : $name, ENT_QUOTES, 'UTF-8' ),
+				'sku'          => null === $r->sku ? '' : (string) $r->sku,
+				'url'          => $url ? esc_url_raw( $url ) : '',
+				'status'       => (string) $r->status,
+				'note'         => (string) $r->note,
+				'has_backup'   => (int) $r->has_backup,
+				'orig_regular' => $r->orig_regular,
+				'orig_sale'    => $r->orig_sale,
+				'new_sale'     => $r->new_sale,
+				'regular_now'  => $r->regular_now,
+				'sale_now'     => $r->sale_now,
+			);
+		}
+		$data = array(
+			'rows' => $out,
+			'next' => count( $rows ) === $limit ? $last : null,
+		);
+		if ( 0 === (int) $req['after'] ) {
+			$data['total'] = $this->repo->count_items( $id );
+		}
+		return rest_ensure_response( $data );
 	}
 
 	/**

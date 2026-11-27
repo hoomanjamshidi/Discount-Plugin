@@ -14,6 +14,8 @@ description: "Use when running or adding tests for Smart Bulk Discount: PHPUnit 
 | Integration | `tests/integration/run.py` s01–s10 | Docker stack + snapshot | every product's price vs an **independent** expectation (`probe.php`) |
 | Web/load | `run.py` s11–s12 | Docker stack | real Apache (8 workers, 128M, 30s) under shopper traffic: zero 5xx, batch time/memory caps |
 | Difficult hosts | `run.py` s14–s17 | Docker stack + `host-sim.php` mu-plugin | 1 CPU + heavy site + slow save hooks + hidden /proc under traffic (no errors, p95 bounded); loopback blocked by firewall; fatal error in another plugin; Persian date plugin |
+| Report export | `run.py` s20 | Docker stack | `/campaigns/{id}/report`: every item once, true "before" prices from the backup (also after the end), shop links, paging, 401/403/404 |
+| Regular price | `run.py` s21–s22 | Docker stack + `host-sim.php` (`regular_from_price`) | admin edits / Quick Edit / REST round-trips during the campaign and after the end time never change the regular price; a buggy external sync that does is caught by the suite and by `docs/diagnose-regular-price.sql` |
 
 ## Setup (once)
 
@@ -36,7 +38,7 @@ Report: `tests/integration/.out/report.json`.
 
 `tests/integration/host-sim.php` is mounted as a must-use plugin. A scenario turns knobs on with
 `set_sim(boot_mb=…, save_ms=…, hide_proc=True, block_loopback=True, no_cron=True, fatal_on=[ids],
-jalali_dates=True)` and limits the web container with `cpu_limit(1)`; `restore()` resets it.
+jalali_dates=True, regular_from_price=True)` and limits the web container with `cpu_limit(1)`; `restore()` resets it.
 
 ## Rules for new scenarios
 

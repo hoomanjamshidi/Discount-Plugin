@@ -3,7 +3,7 @@ Tags: woocommerce, discount, bulk sale, schedule, jalali
 Requires at least: 6.0
 Tested up to: 7.1
 Requires PHP: 7.4
-Stable tag: 1.1.0
+Stable tag: 1.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -19,6 +19,7 @@ Bulk percent/fixed discounts on chosen products, categories or every in-stock pr
 * Guaranteed completeness: after writing, every price is re-read from the database and any mismatch is retried (up to 3 times); the campaign becomes "active" only when nothing is left pending.
 * Safe ending: original prices are backed up before the first write and restored exactly at the end. If an admin edited a product meanwhile, their price is kept. From the moment a campaign ends, the storefront and cart stop showing its price even before the last product is restored.
 * One campaign per product: overlapping campaigns never overwrite each other.
+* Campaign report: download every product of a campaign (ID, SKU, name, shop link, regular price, price before the campaign, campaign price, discount, status) as an Excel file or print it / save it as PDF.
 * WP-CLI: `wp dsd list|create|campaign|run|watchdog|status`.
 
 == Installation ==
@@ -46,6 +47,11 @@ Stop the campaign first and wait until it shows "تمام شده". Deactivation 
 Nothing is lost: progress is stored per product. When the site comes back, the watchdog resumes the work; if the end time passed meanwhile, prices are restored.
 
 == Changelog ==
+
+= 1.2.0 =
+* Campaign report export: Excel (.xlsx, right-to-left, filterable, clickable links) and a printable report for "Save as PDF", from the campaign page. Prices come from the backup taken before the first write, so the report stays exact after the campaign ended.
+* New admin-only REST route `GET /campaigns/{id}/report` (paged, read-only).
+* Investigation of "the regular price became the discount price": not caused by the plugin (it never writes the regular price); reproducible only with an external price writer. Read-only check: docs/diagnose-regular-price.sql. New test scenarios s20–s22.
 
 = 1.1.0 =
 * Resource governor rewritten: pacing between products, latency-based congestion detection, memory budget from real headroom, load average no longer blocks the job (fixes jobs stuck at start and 503 errors on shared hosts).

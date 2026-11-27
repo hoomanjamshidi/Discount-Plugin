@@ -499,6 +499,54 @@ final class Repository {
 	}
 
 	/**
+	 * One page of a campaign's report (for the Excel / PDF export), oldest item first.
+	 *
+	 * Keyset-paginated by item ID so a long list never needs a growing OFFSET scan. Current
+	 * prices are read per row with single-row subqueries (indexed by post_id), so a product
+	 * with a duplicated meta row can never appear twice in the report.
+	 *
+	 * @param int $campaign_id Campaign.
+	 * @param int $after_id    Last item ID of the previous page (0 = start).
+	 * @param int $limit       Page size.
+	 * @return object[]
+	 */
+	public function report_page( $campaign_id, $after_id, $limit ) {
+		global $wpdb;
+		$t    = self::items_table();
+		$meta = "SELECT m.meta_value FROM {$wpdb->postmeta} m WHERE m.post_id = i.product_id AND m.meta_key = %s ORDER BY m.meta_id ASC LIMIT 1";
+		return (array) $wpdb->get_results( // phpcs:ignore WordPress.DB.DirectDatabaseQuery
+			$wpdb->prepare(
+				"SELECT i.id, i.product_id, i.parent_id, i.status, i.note, i.has_backup, i.orig_regular, i.orig_sale, i.new_sale,
+					p.post_title, pp.post_title AS parent_title,
+					({$meta}) AS sku, ({$meta}) AS regular_now, ({$meta}) AS sale_now
+				FROM {$t} i
+				LEFT JOIN {$wpdb->posts} p ON p.ID = i.product_id
+				LEFT JOIN {$wpdb->posts} pp ON pp.ID = i.parent_id
+				WHERE i.campaign_id = %d AND i.id > %d
+				ORDER BY i.id ASC LIMIT %d", // phpcs:ignore WordPress.DB.PreparedSQL.InterpolatedNotPrepared
+				'_sku',
+				'_regular_price',
+				'_sale_price',
+				(int) $campaign_id,
+				(int) $after_id,
+				(int) $limit
+			)
+		);
+	}
+
+	/**
+	 * Number of items in a campaign.
+	 *
+	 * @param int $campaign_id Campaign.
+	 * @return int
+	 */
+	public function count_items( $campaign_id ) {
+		global $wpdb;
+		$t = self::items_table();
+		return (int) $wpdb->get_var( $wpdb->prepare( "SELECT COUNT(*) FROM {$t} WHERE campaign_id = %d", (int) $campaign_id ) ); // phpcs:ignore
+	}
+
+	/**
 	 * Products currently locked by a *live* campaign other than $campaign_id.
 	 *
 	 * @param int $product_id  Product.

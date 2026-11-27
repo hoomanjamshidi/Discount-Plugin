@@ -30,6 +30,9 @@ SITE = "http://localhost:8088"
 DC = ["docker", "compose", "-f", COMPOSE]
 
 os.makedirs(OUT_HOST, exist_ok=True)
+# The WP-CLI container writes snapshots here as the web user (uid 33): the folder must be writable
+# for it, or every snapshot is lost (probe.php now fails loudly instead of comparing against nothing).
+os.chmod(OUT_HOST, 0o777)
 RESULTS = []
 
 
@@ -556,6 +559,168 @@ def s12_admin_page_runner_only():
     check(longest < 15, f"a /tick request took {longest:.1f}s")
     assert_applied(cid, snap)
     return {"ticks": ticks, "longest_tick_secs": round(longest, 2)}
+
+
+def rest_status(method, route, headers):
+    """HTTP status of a REST call (for permission checks)."""
+    url = f"{SITE}/?rest_route=/dsd/v1/{route.lstrip('/')}"
+    req = urllib.request.Request(url, method=method, headers=headers)
+    try:
+        with urllib.request.urlopen(req, timeout=60) as r:
+            return r.status
+    except urllib.error.HTTPError as e:
+        return e.code
+
+
+def fetch_report(cid, auth, per_page):
+    rows, after, total = [], 0, None
+    for _ in range(1000):
+        page = rest("GET", f"campaigns/{cid}/report&after={after}&per_page={per_page}", auth)
+        if "total" in page:
+            total = page["total"]
+        rows += page["rows"]
+        if page["next"] is None:
+            break
+        after = page["next"]
+    return rows, total
+
+
+def load_snap(name):
+    with open(os.path.join(OUT_HOST, f"{name}.json"), encoding="utf-8") as f:
+        return {int(k): v for k, v in json.loads(f.read()).items()}
+
+
+def same_price(a, b):
+    if a in (None, "") or b in (None, ""):
+        return (a in (None, "")) and (b in (None, ""))
+    return abs(float(a) - float(b)) < 0.001
+
+
+@scenario
+def s20_report_export():
+    """Campaign report (Excel/PDF export source): every product with ID, link, price before and
+    campaign price; identical page by page; still exact after the campaign ended; admins only."""
+    restore()
+    snapshot("s20")
+    snap = load_snap("s20")
+    simple, own, variable = probe("pick", 20, "simple"), probe("pick_own_sale", 4), probe("pick", 4, "variable")
+    check(len(own) == 4, "need products with their own sale price")
+    cid = probe("create", json.dumps({"name": "گزارش", "discount_type": "percent", "discount_value": 20, "target_type": "products",
+                                      "target": {"product_ids": simple + own + variable},
+                                      "options": {"sale_policy": "override", "round_step": 1000}, "start": True}))["id"]
+    wait_status(cid, ["active"])
+    auth = app_password()
+    counts = probe("status", cid)["counts"]
+
+    rows, total = fetch_report(cid, auth, 7)
+    big, total_big = fetch_report(cid, auth, 500)
+    check(rows == big and total == total_big, "paged report differs from the one-page report")
+    ids = [r["product_id"] for r in rows]
+    check(len(ids) == len(set(ids)) == total == counts["total"], f"rows={len(ids)} unique={len(set(ids))} total={total} items={counts['total']}")
+    links = probe("permalinks", ",".join(str(r["parent_id"] or r["product_id"]) for r in rows))
+    for r in rows:
+        old = snap[r["product_id"]]["meta"]
+        check(r["name"] != "" and r["url"] == links[str(r["parent_id"] or r["product_id"])], f"name/link wrong: {r}")
+        if r["has_backup"]:
+            check(same_price(r["orig_regular"], old.get("_regular_price")) and same_price(r["orig_sale"], old.get("_sale_price")),
+                  f"price before is not the real one: {r} vs {old}")
+            check(same_price(r["sale_now"], r["new_sale"]), f"campaign price is not what the product carries: {r}")
+        else:
+            check(same_price(r["regular_now"], old.get("_regular_price")), f"untouched row has a changed price: {r}")
+    applied = [r for r in rows if r["status"] == "applied"]
+    check(len(applied) == counts["applied"] and any(r["orig_sale"] for r in applied), "expected applied rows incl. own-sale products")
+
+    probe("cmd", "stop", cid)
+    wait_status(cid, ["ended"])
+    after_rows, _ = fetch_report(cid, auth, 500)
+    for a, b in zip(rows, after_rows):
+        check(a["product_id"] == b["product_id"] and same_price(a["orig_regular"], b["orig_regular"]) and same_price(a["new_sale"], b["new_sale"]),
+              f"report changed after the end: {a} vs {b}")
+        if b["has_backup"]:
+            check(same_price(b["regular_now"], b["orig_regular"]) and same_price(b["sale_now"], b["orig_sale"]), f"price not back: {b}")
+
+    anon = rest_status("GET", f"campaigns/{cid}/report", {})
+    login = f"shopper{int(time.time())}"
+    uid = wp("user", "create", login, f"{login}@example.test", "--role=customer", "--porcelain").stdout.strip()
+    pw = wp("user", "application-password", "create", uid, "dsd-test", "--porcelain").stdout.strip()
+    customer = rest_status("GET", f"campaigns/{cid}/report", {"Authorization": "Basic " + base64.b64encode(f"{login}:{pw}".encode()).decode()})
+    missing = rest_status("GET", "campaigns/999999/report", auth)
+    check(anon == 401 and customer == 403 and missing == 404, f"permissions: anon={anon} customer={customer} missing={missing}")
+    return {"rows": len(rows), "applied": len(applied), "own_sale_rows": sum(1 for r in applied if r["orig_sale"]),
+            "anon": anon, "customer": customer, "missing": missing}
+
+
+@scenario
+def s21_regular_price_survives_edits_and_sync_reads():
+    """The "regular price became the discount" report: a campaign that ends BY TIME while an admin
+    saves products (edit screen, Quick Edit) and an external app reads/writes prices through the
+    REST API — during the campaign and in the gap after the end time, before the restore ran.
+    Every price of every product must come back; the storefront must show what it showed before."""
+    restore()
+    snap = snapshot("s21")
+    simple, variable = probe("pick", 24, "simple"), probe("pick", 3, "variable")
+    shown = simple[:2] + variable[:2]
+    html_before = probe("price_html", ",".join(map(str, shown)))
+    now = int(time.time())
+    cid = probe("create", json.dumps({"name": "s21", "discount_type": "percent", "discount_value": 15, "target_type": "products",
+                                      "target": {"product_ids": simple + variable}, "options": {"round_step": 1000},
+                                      "ends_at": now + 150, "start": True}))["id"]
+    wait_status(cid, ["active"])
+    for pid in simple[0:3]:
+        probe("full_edit", pid)
+    for pid in simple[3:6]:
+        probe("quick_edit", pid)
+    for pid in simple[6:9]:
+        probe("rest_roundtrip", pid)
+    check(probe("check_applied", cid, snap)["wrong"] == 0, "admin edits during the campaign disturbed our prices")
+    while time.time() < now + 152:
+        time.sleep(1)
+    for pid in simple[9:12]:
+        probe("quick_edit", pid)
+    for pid in simple[12:15]:
+        probe("rest_roundtrip", pid)
+    wp("dsd", "watchdog")
+    wait_status(cid, ["ended"])
+    assert_restored(snap)
+    html_after = probe("price_html", ",".join(map(str, shown)))
+    check(html_after == html_before, f"storefront differs after the campaign: {html_before} vs {html_after}")
+    return {"counts": probe("status", cid)["counts"], "storefront_same": True}
+
+
+@scenario
+def s22_external_price_writer_is_detected():
+    """Control for s21: a buggy price-sync plugin copies the selling price into the regular price on
+    every save. The suite and docs/diagnose-regular-price.sql MUST catch it, and the plugin's backup
+    must still hold the true regular price (so it can be repaired)."""
+    restore()
+    snapshot("s22")
+    snap = load_snap("s22")
+    simple, variable = probe("pick", 10, "simple"), probe("pick", 2, "variable")
+    set_sim(regular_from_price=True)
+    try:
+        cid = probe("create", json.dumps({"name": "s22", "discount_type": "percent", "discount_value": 15, "target_type": "products",
+                                          "target": {"product_ids": simple + variable}, "options": {"round_step": 1000}, "start": True}))["id"]
+        wait_status(cid, ["active"])
+        probe("cmd", "stop", cid)
+        wait_status(cid, ["ended"])
+    finally:
+        set_sim()
+    snapshot("s22_after")
+    after = load_snap("s22_after")
+    changed = {i for i in snap if snap[i]["meta"].get("_regular_price") != after[i]["meta"].get("_regular_price")}
+    check(changed, "the external writer changed nothing: the control is invalid")
+    rep = probe("check_restored", f"{OUT_CLI}/s22.json")
+    check(rep["differences"] > 0, "check_restored did not notice the overwritten regular prices")
+    sh(["docker", "cp", os.path.join(ROOT, "docs", "diagnose-regular-price.sql"), "dsd-cli-1:/tmp/diagnose.sql"])
+    diag = probe("diagnose", "/tmp/diagnose.sql")
+    check(diag["error"] == "", f"diagnostic SQL failed: {diag['error']}")
+    flagged = {int(r["product_id"]): r for r in diag["rows"] if r["problem"] == "REGULAR_EQUALS_DISCOUNT"}
+    check(set(flagged) == changed, f"diagnostic flagged {sorted(flagged)} but the regular price changed on {sorted(changed)}")
+    for pid, r in flagged.items():
+        check(same_price(r["orig_regular"], snap[pid]["meta"]["_regular_price"]), f"backup lost the true regular price: {r}")
+        check(same_price(r["regular_now"], r["new_sale"]), f"not the reported symptom: {r}")
+    return {"regular_overwritten": len(changed), "flagged": len(flagged), "backup_intact": True,
+            "fingerprint": sorted({f"{r['item_status']}/{r['item_note'] or '-'}" for r in flagged.values()})}
 
 
 # ---- difficult hosts --------------------------------------------------------------
